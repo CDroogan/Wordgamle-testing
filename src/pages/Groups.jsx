@@ -113,7 +113,7 @@ function Groups() {
                         {userData.is_paused === 0 && (
                             <Row>
                                 <Col>
-                                <Button className="wordle-btn px-5 mt-3" onClick={handleShowCreateForm}>
+                                <Button className="px-5 mt-3" onClick={handleShowCreateForm}>
                                     Create Group
                                 </Button>
                                 </Col>
@@ -141,7 +141,7 @@ function Groups() {
                                             className="col-6 col-sm-4 col-md-3 mb-3 d-flex justify-content-center"
                                         >
                                             <Button
-                                                variant="outline-success"
+                                                variant="outline-primary"
                                                 className="w-100 text-wrap"
                                                 onClick={() => navigate(`/group/${group.id}`)}
                                             >

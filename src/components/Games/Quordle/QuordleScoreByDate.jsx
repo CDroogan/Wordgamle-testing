@@ -132,7 +132,7 @@ function QuordleScoreByDate() {
 
         return (
             <>
-                <Button className={`example-custom-input px-5 btn btn-primary Quordle-btn`} onClick={onClick} ref={ref}>
+                <Button className={`example-custom-input px-5 Quordle-btn`} onClick={onClick} ref={ref}>
             Go To Date
         </Button>
             

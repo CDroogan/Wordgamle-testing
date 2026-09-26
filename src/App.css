@@ -1,8 +1,9 @@
 :root {
-  /* The site's one brand accent color - change this single value to
-     re-theme every shared button/icon at once. Quordle keeps its own
-     pinned green (see .Quordle-btn/.quordle-btn and
-     .todays-result-box-quordle) regardless of what this is set to. */
+  /* The site's one brand accent color ("Gamle Purple") - change this
+     single value to re-theme every shared button/icon at once. Each
+     game button
+     (.wordle-btn/.connections-btn/.phrazle-btn/.quordle-btn/.octordle-btn)
+     has its own fixed color instead and is untouched by this. */
   --wordgamle-accent: #330072;
 }
 body{
@@ -15,6 +16,21 @@ body{
   padding: 0px 20px;
 }
 .btn-primary{
+  background-color: var(--wordgamle-accent) !important;
+  border-color: var(--wordgamle-accent) !important;
+}
+/* Outline-style buttons (group name buttons, etc.) - accent color for
+   just the outline and text, filling solid only on hover/active. */
+.btn-outline-primary{
+  color: var(--wordgamle-accent) !important;
+  border-color: var(--wordgamle-accent) !important;
+  background-color: transparent !important;
+}
+.btn-outline-primary:hover,
+.btn-outline-primary:focus,
+.btn-outline-primary:active,
+.btn-outline-primary.active{
+  color: #fff !important;
   background-color: var(--wordgamle-accent) !important;
   border-color: var(--wordgamle-accent) !important;
 }
