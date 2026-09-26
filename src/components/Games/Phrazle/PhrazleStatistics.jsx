@@ -16,6 +16,7 @@ function phrazleStatistics({statschart}) {
     const [last7Average, setLast7Average] = useState();
     const [cumulativeAvgEntered, setCumulativeAvgEntered] = useState();
     const [cumulativeAvgInclNoPlay, setCumulativeAvgInclNoPlay] = useState();
+    const [deucesAward, setDeucesAward] = useState();
 
     useEffect(() => {
         getStatsValue();
@@ -40,6 +41,7 @@ function phrazleStatistics({statschart}) {
                 setLast7Average(statistics.last7Average);
                 setCumulativeAvgEntered(statistics.cumulativeAvgEntered);
                 setCumulativeAvgInclNoPlay(statistics.cumulativeAvgInclNoPlay);
+                setDeucesAward(statistics.deucesAward);
             })
             .catch((error) => {
                 console.error("Error fetching data: ", error);
@@ -90,6 +92,13 @@ function phrazleStatistics({statschart}) {
                         <li>
                             <div className='value'>{cumulativeAvgInclNoPlay}</div>
                             <div className='bottom-text'>Cumulative Avg. (incl. No Play)</div>
+                        </li>
+                    </ul>
+
+                    <ul className="justify-content-center">
+                        <li>
+                            <div className='value'>{deucesAward}</div>
+                            <div className='bottom-text'>Deuces Awards</div>
                         </li>
                     </ul>
 
