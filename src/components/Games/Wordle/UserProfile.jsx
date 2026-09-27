@@ -31,6 +31,7 @@ function UserProfile() {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [deletePassword, setDeletePassword] = useState('');
     const [deleteError, setDeleteError] = useState('');
+    const [showDeletePassword, setShowDeletePassword] = useState(false);
 
     const USER_AUTH_DATA = JSON.parse(localStorage.getItem('auth'));
     const loginuserEmail = USER_AUTH_DATA?.email;
@@ -498,18 +499,23 @@ function UserProfile() {
                 <p>Are you sure you want to delete your account? This action cannot be undone.</p>
                 <Form.Group>
                     <Form.Label>Enter your password to confirm</Form.Label>
-                    <Form.Control
-                        type="password"
-                        value={deletePassword}
-                        onChange={(e) => {
-                            setDeletePassword(e.target.value);
-                            setDeleteError('');
-                        }}
-                        isInvalid={!!deleteError}
-                    />
-                    <Form.Control.Feedback type="invalid">
-                        {deleteError}
-                    </Form.Control.Feedback>
+                    <InputGroup>
+                        <Form.Control
+                            type={showDeletePassword ? "text" : "password"}
+                            value={deletePassword}
+                            onChange={(e) => {
+                                setDeletePassword(e.target.value);
+                                setDeleteError('');
+                            }}
+                            isInvalid={!!deleteError}
+                        />
+                        <InputGroup.Text>
+                            <i className={showDeletePassword ? "fa fa-eye-slash" : "fa fa-eye"} onClick={() => setShowDeletePassword(!showDeletePassword)}></i>
+                        </InputGroup.Text>
+                        <Form.Control.Feedback type="invalid">
+                            {deleteError}
+                        </Form.Control.Feedback>
+                    </InputGroup>
                 </Form.Group>
             </Modal.Body>
             <Modal.Footer>

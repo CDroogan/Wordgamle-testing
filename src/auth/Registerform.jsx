@@ -487,7 +487,7 @@ function Registerform() {
                                         placeholder={registrationformText.confirm_password_placeholder}
                                         />
                                         <InputGroup.Text style={{ cursor: 'pointer' }} onClick={toggleConfirmPasswordVisibility}>
-                                            <i className={showPassword ? "fa fa-eye-slash" : "fa fa-eye"}></i>
+                                            <i className={showConfirmPassword ? "fa fa-eye-slash" : "fa fa-eye"}></i>
                                         </InputGroup.Text>
                                     </InputGroup>
                                     {touched.confirmpassword && errors.confirmpassword && <p className='form-validation-error'>{errors.confirmpassword}</p>}
