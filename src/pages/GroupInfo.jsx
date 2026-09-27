@@ -353,22 +353,6 @@ function GroupInfo() {
                                 <Button className="btn btn-warning w-100 mb-2 me-md-2" onClick={handleShowModal}>
                                     Edit Group Name
                                 </Button>
-                                <Button variant="danger" className="w-100" onClick={() => {setShowDeleteConfirm(true);}} disabled={loading}>
-                                    {deleteloading? (
-                                        <>
-                                        <Spinner
-                                            as="span"
-                                            animation="border"
-                                            size="sm"
-                                            role="status"
-                                            aria-hidden="true"
-                                        />{' '}
-                                        Deleting...
-                                        </>
-                                    ) : (
-                                        'Delete Group'
-                                    )}
-                                    </Button>
                                 </Col>
                             </>
                             ) : (
@@ -427,6 +411,29 @@ function GroupInfo() {
                                 </Col>
                             </Row>
                             ))}
+                            </Col>
+                        </Row>
+                        )}
+
+                        {userId === captainid && (
+                        <Row className="justify-content-center">
+                            <Col xs={10} md={6}>
+                                <Button variant="danger" className="w-100" onClick={() => {setShowDeleteConfirm(true);}} disabled={loading}>
+                                    {deleteloading? (
+                                        <>
+                                        <Spinner
+                                            as="span"
+                                            animation="border"
+                                            size="sm"
+                                            role="status"
+                                            aria-hidden="true"
+                                        />{' '}
+                                        Deleting...
+                                        </>
+                                    ) : (
+                                        'Delete Group'
+                                    )}
+                                </Button>
                             </Col>
                         </Row>
                         )}
