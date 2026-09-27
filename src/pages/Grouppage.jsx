@@ -186,8 +186,8 @@ function GroupPage() {
             )}
 
             <MemberGameSelections leaderboardText={leaderboardText} />
-            <GameNotificationToggle/>
             {isCaptain && <SelectScoringMethod  leaderboardText={leaderboardText}/>}
+            <GameNotificationToggle/>
             <AddMembers
                 showForm={showMemberForm}
                 handleFormClose={() => setShowMemberForm(false)}
