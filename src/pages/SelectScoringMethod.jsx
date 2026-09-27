@@ -97,6 +97,7 @@ function SelectScoringMethod({ leaderboardText }) {
                                 id={`method-${method}`}
                                 checked={scoringmethod === method}
                                 onChange={() => handleMethodSelection(method)}
+                                onClick={() => handleMethodSelection(method)}
                             />
                             <label
                                 className={`form-check-label scoring-label px-2 ${scoringmethod === method ? "text-primary fw-bold" : "text-primary"}`}
