@@ -295,7 +295,7 @@ function Registerform() {
                         <h5>Create New Account</h5>
                         <Form encType="multipart/form-data" onSubmit={signUp}>
                         <Row>
-                            <Col md={6}>
+                            <Col xs={12}>
                                 <Form.Group className="mb-3">
                                     {/* Label with HTML + required star */}
                                     <Form.Label
@@ -328,7 +328,7 @@ function Registerform() {
                                     </Form.Group>
 
                             </Col>
-                            <Col md={6}>
+                            <Col xs={12}>
                                 <Form.Group className="mb-3">
                                     <Form.Label
                                         dangerouslySetInnerHTML={{
@@ -353,7 +353,7 @@ function Registerform() {
                             </Col>
                         </Row>
                         <Row>
-                            <Col md={6}>
+                            <Col xs={12}>
                                 <Form.Group className="mb-3">
                                     <Form.Label
                                         dangerouslySetInnerHTML={{
@@ -376,7 +376,7 @@ function Registerform() {
                                     {touched.username && errors.username && <p className='form-validation-error'>{errors.username}</p>}
                                 </Form.Group>
                             </Col>
-                            <Col md={6}>
+                            <Col xs={12}>
                                 <Form.Group className="mb-3">
                                     <Form.Label
                                         dangerouslySetInnerHTML={{
@@ -402,7 +402,7 @@ function Registerform() {
                         </Row>
 
                         <Row>
-                            <Col md={6}>
+                            <Col xs={12}>
                                 <Form.Group className="mb-3">
                                     <Form.Label
                                         dangerouslySetInnerHTML={{
@@ -434,7 +434,7 @@ function Registerform() {
                                 
 
                             </Col>
-                            <Col md={6}>
+                            <Col xs={12}>
                                 <Form.Group className="mb-3">
                                     <Form.Label
                                         dangerouslySetInnerHTML={{
@@ -465,7 +465,7 @@ function Registerform() {
                                 </Form.Group>
 
                             </Col>
-                            <Col md={6}>
+                            <Col xs={12}>
                                 <Form.Group className="mb-3">
                                     <Form.Label
                                         dangerouslySetInnerHTML={{
@@ -493,7 +493,7 @@ function Registerform() {
                                     {touched.confirmpassword && errors.confirmpassword && <p className='form-validation-error'>{errors.confirmpassword}</p>}
                                 </Form.Group>
                             </Col>
-                            <Col md={6}>
+                            <Col xs={12}>
                                 <Form.Group controlId="formFile" className="mb-3">
                                     <Form.Label
                                         dangerouslySetInnerHTML={{
@@ -525,7 +525,7 @@ function Registerform() {
                                 )}
                             </Col>
                             {groupId && (
-                            <Col md={6}>
+                            <Col xs={12}>
                                 <Form.Group className="mb-3">
                                 <Form.Control
                                     type="hidden"
