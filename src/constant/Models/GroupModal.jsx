@@ -15,6 +15,7 @@ const GroupModal = ({ showForm, handleFormClose, onSubmit, groupname, setGroupna
               type="text"
               value={groupname}
               onChange={(e) => setGroupname(e.target.value)}
+              placeholder="Enter Group Name (this can be changed later)"
               autoFocus
             />
           </Form.Group>
