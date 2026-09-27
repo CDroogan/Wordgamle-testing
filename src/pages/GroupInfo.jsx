@@ -330,7 +330,7 @@ function GroupInfo() {
                     <div className="text-md-start">
                         <p><strong>*Captain</strong></p>
                         <Row className="justify-content-center">
-                            <Col xs={10} md={6}>
+                            <Col xs={10}>
                                 <Button
                                     className="mb-2 me-md-2 w-100"
                                     onClick={() =>
@@ -349,14 +349,14 @@ function GroupInfo() {
                             </Col>
                             {userId === captainid ? (
                             <>
-                                <Col xs={10} md={6}>
+                                <Col xs={10}>
                                 <Button className="btn btn-warning w-100 mb-2 me-md-2" onClick={handleShowModal}>
                                     Edit Group Name
                                 </Button>
                                 </Col>
                             </>
                             ) : (
-                            <Col xs={10} md={6}>
+                            <Col xs={10}>
                                 <Button className="btn-danger w-100" onClick={() => {setShowExitConfirm(true);}}>
                                 Exit Group
                                 </Button>
