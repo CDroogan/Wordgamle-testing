@@ -1214,7 +1214,7 @@ useEffect(() => {
                             <FaArrowLeft />
                         </button>
                         <div>
-                            {monthlyData?.monthOf ? `Month of ${dayjs(monthlyData.monthOf).format("MMMM YYYY")}` : "Month of —"}
+                            {monthlyData?.monthOf ? dayjs(monthlyData.monthOf).format("MMMM YYYY") : "—"}
                         </div>
                         <button
                             onClick={goToNextMonth}
