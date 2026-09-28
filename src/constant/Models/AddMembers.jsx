@@ -108,7 +108,7 @@ const AddMembers = ({ showForm, handleFormClose, groupName, groupId, existingMem
   <>
     <Modal show={showForm} onHide={handleFormClose}>
       <Modal.Header closeButton>
-        <Modal.Title>Add Members</Modal.Title>
+        <Modal.Title>Add Group Members</Modal.Title>
       </Modal.Header>
       <Modal.Body>
         <Form onSubmit={handleSubmit}>
@@ -154,7 +154,7 @@ const AddMembers = ({ showForm, handleFormClose, groupName, groupId, existingMem
             </div>
           </Form.Group>
 
-          <Button variant="success" onClick={handleSendInvitation} disabled={loading}>
+          <Button variant="primary" onClick={handleSendInvitation} disabled={loading}>
             {loading ? (
               <>
                 <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
