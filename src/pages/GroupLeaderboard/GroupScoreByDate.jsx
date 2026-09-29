@@ -214,6 +214,12 @@ function GroupScoreByDate({ latestJoinDate, setSelectedMember, setShowProfile, m
             setStartDate(date);
             fetchDataByDate(formattedDateStr);
         }
+
+        // Going to a date should move the Weekly/Monthly/Yearly Leaderboards
+        // to the period containing it too, not just the Daily one.
+        fetchWeeklyData(formattedDateStr);
+        fetchMonthlyData(formattedDateStr);
+        fetchYearlyData(dayjs(date).year());
     };
 
 
@@ -643,7 +649,7 @@ useEffect(() => {
                     maxDate={new Date()}
                 /> */}
                 <DatePicker
-                   
+                    selected={startDate}
                     onChange={handleDateChange}
                     customInput={<ExampleCustomInput />}
                     minDate={minDate}
