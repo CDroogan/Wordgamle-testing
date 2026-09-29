@@ -655,12 +655,14 @@ useEffect(() => {
                     minDate={minDate}
                     maxDate={game === 'phrazle' ? maxSelectableDate : dayjs().subtract(1, 'day').toDate()}
                     />
-                <Button
-                    className={`px-5 my-4 ms-2 ${game}-btn`}
-                    onClick={() => handleDateChange(game === 'phrazle' ? maxSelectableDate : dayjs().subtract(1, 'day').toDate())}
-                >
-                    Go To Today
-                </Button>
+                {!dayjs(startDate).isSame(dayjs(), 'month') && (
+                    <Button
+                        className={`px-5 my-4 ms-2 ${game}-btn`}
+                        onClick={() => handleDateChange(game === 'phrazle' ? maxSelectableDate : dayjs().subtract(1, 'day').toDate())}
+                    >
+                        Back To Today
+                    </Button>
+                )}
             </div>
             <Row
                 className="justify-content-center leaderboard"
