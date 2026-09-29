@@ -1318,7 +1318,29 @@ useEffect(() => {
                         >
                             <FaArrowLeft />
                         </button>
-                        <div>{yearlyData?.year ?? "—"}</div>
+                        <div className="text-center">
+                            {(() => {
+                                if (!yearlyData) return "—";
+                                const isYTD = yearlyData.label?.includes("Year To Date");
+                                const isCurrentYear = yearlyData.year === dayjs().year();
+                                if (isYTD && isCurrentYear) {
+                                    return `${yearlyData.year} YTD`;
+                                }
+                                if (isYTD && !isCurrentYear) {
+                                    // The site's first, partial year - show the
+                                    // year plus the actual date range it covers.
+                                    return (
+                                        <>
+                                            <div>{yearlyData.year}</div>
+                                            <div style={{ fontSize: '0.65rem', lineHeight: 1 }}>
+                                                {dayjs(yearlyData.periodStart).format("M/D/YY")} – {dayjs(yearlyData.periodEnd).format("M/D/YY")}
+                                            </div>
+                                        </>
+                                    );
+                                }
+                                return yearlyData.year;
+                            })()}
+                        </div>
                         <button
                             onClick={goToNextYear}
                             disabled={!yearlyData?.canGoForward}
@@ -1328,7 +1350,7 @@ useEffect(() => {
                         </button>
                     </div>
                     <h4 className="py-3 text-center">
-                        {yearlyData?.label ? `${yearlyData.label} Leaderboard` : "Yearly Leaderboard"}
+                        Yearly Leaderboard
                     </h4>
 
                     {!yearlyData ? null : (() => {
