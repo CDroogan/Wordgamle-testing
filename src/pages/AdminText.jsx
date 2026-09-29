@@ -182,7 +182,7 @@ function AdminText() {
     toast.success(response.data.message);
     setRecordExists(true); // now a record definitely exists
   } catch (error) {
-    toast.error('Failed to save data.');
+    toast.error(error.response?.data?.message || 'Failed to save data.');
   }
 };
 
