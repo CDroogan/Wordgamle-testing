@@ -261,6 +261,9 @@ const handleInviteFriends = async () => {
                   <Button className="custom-btn m-2" onClick={() => { setExpanded(false); navigate('/rules'); }}>
                     The Rules
                   </Button>
+                  <Button className="custom-btn m-2" onClick={() => { setExpanded(false); navigate('/gametips'); }}>
+                    Tips & Tricks
+                  </Button>
                   <Button className="custom-btn m-2" onClick={handleInviteFriends}>
                     Invite Friends
                   </Button>
