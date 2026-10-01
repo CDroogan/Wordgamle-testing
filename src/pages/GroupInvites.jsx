@@ -163,18 +163,21 @@ const fetchGroupMessages = async () => {
     // setunReadCount(unreadCount);
 
     setGroupMessages(filteredMessages);
-
-    setunReadCount(prev => {
-      return getUnreadCount(filteredMessages, userId);
-    });
-
-
-    //setunReadCount(filteredUnreadCount);
-    // setunReadCount(response.data.total_unread);
   } catch (error) {
     console.error('Error fetching group messages:', error);
   }
 };
+
+// The bell badge should count every kind of pending notification, not
+// just unread group messages - a pending group invitation has no
+// "seen" concept of its own (it's resolved by Accept/Decline, not by
+// opening the dropdown), so it counts as pending for as long as it's
+// in the list.
+useEffect(() => {
+  setunReadCount(
+    getUnreadCount(groupMessages, userId) + (Array.isArray(invites) ? invites.length : 0)
+  );
+}, [groupMessages, invites, userId]);
 
   // Accept invite
 const handleAcceptInvite = async (inviteId, groupId) => {
@@ -558,7 +561,6 @@ const handleClick = async (
       }));
 
       setGroupMessages(updatedMessages);
-      setunReadCount(0);
 
     } catch (error) {
       console.error("Error marking all as read:", error);
