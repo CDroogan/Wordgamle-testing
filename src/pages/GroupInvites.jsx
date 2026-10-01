@@ -712,6 +712,16 @@ const handleClick = async (
             processedMessage = processedMessage.replace(/\bWINS\b/g, "WIN");
           }
 
+          // Deuces Award: the winner's own view gets different wording
+          // than everyone else's, the same way the name above becomes
+          // "You" only for them.
+          if (msg.msg_from === "deuces_award" && processedMessage.includes("<strong>You</strong>")) {
+            processedMessage = processedMessage.replace(
+              "Two 2s Today!",
+              "Great Phrazle day, whoop!!"
+            );
+          }
+
          
 
           return (
