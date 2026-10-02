@@ -258,7 +258,7 @@ function GroupInfo() {
                                     className="rounded-circle mb-1"
                                     style={{ width: '50px', height: '50px', objectFit: 'cover', border: '2px solid #0d6efd' }}
                                     />
-                                    {member.is_paused && (
+                                    {!!member.is_paused && (
                                     <span
                                     className="badge bg-danger"
                                     style={{
