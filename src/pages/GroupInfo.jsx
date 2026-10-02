@@ -258,8 +258,9 @@ function GroupInfo() {
                                     className="rounded-circle mb-1"
                                     style={{ width: '50px', height: '50px', objectFit: 'cover', border: '2px solid #0d6efd' }}
                                     />
+                                    {member.is_paused && (
                                     <span
-                                    className={`badge ${member.is_paused ? 'bg-danger' : 'bg-success'}`}
+                                    className="badge bg-danger"
                                     style={{
                                         position: 'absolute',
                                         top: '0px',
@@ -269,8 +270,9 @@ function GroupInfo() {
                                         borderRadius: '8px'
                                     }}
                                     >
-                                    {member.is_paused ? 'Inactive' : 'Active'}
+                                    Inactive
                                     </span>
+                                    )}
                                 </div>
 
                                 <h6 className="mt-1 mb-0 text-primary">
