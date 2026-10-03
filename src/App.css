@@ -599,3 +599,38 @@ cursor: pointer;
   justify-content: start !important;
 }
 }
+
+/* Pre-account homepage: "How it works" step numbers and clickable
+   explainer phrases ("Share and Chat", "CLICK HERE to see how!", etc.) */
+.home-step-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background-color: var(--wordgamle-accent);
+  color: #fff;
+  font-weight: bold;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.home-popup-link {
+  color: #0d6efd;
+  cursor: pointer;
+  text-decoration: underline;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+}
+
+.home-info-popup .modal-content {
+  border: 3px solid var(--wordgamle-accent);
+  border-radius: 24px;
+}
+
+.home-info-popup-img {
+  max-height: 70vh;
+  max-width: 100%;
+}

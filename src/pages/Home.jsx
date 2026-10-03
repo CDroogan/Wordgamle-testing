@@ -17,6 +17,9 @@ import { FaRunning, FaDumbbell, FaTree } from "react-icons/fa"; // Example icons
 import GroupScoreByDate from "../pages/GroupLeaderboard/GroupScoreByDate";
 import dayjs from "dayjs";
 import useDragScroll from "../hooks/useDragScroll";
+import HomeInfoPopup from "../components/HomeInfoPopup";
+import shareChatPopupImg from "../assets/homepage-popups/share-and-chat.jpg";
+import storeHowToPopupImg from "../assets/homepage-popups/store-how-to.png";
 
 function Home() {
     const baseURL = import.meta.env.VITE_BASE_URL;
@@ -116,6 +119,12 @@ function Home() {
     };
     const isEmptyObject = userAuthData && Object.keys(userAuthData).length === 0;
     const { dragScrollRef, dragScrollHandlers } = useDragScroll();
+
+    // Prototype of the PRE-account homepage's clickable explainer phrases -
+    // only these two are wired up for now so Cassandra can see the look and
+    // feel before the rest of the pop-ups (and admin-editable wording) are
+    // built out.
+    const [activeHomePopup, setActiveHomePopup] = useState(null);
 
     const [homepageText, setHomepageText] = useState({ heading: '', text1: '', text2: '', text3: '' });
     useEffect(() => {
@@ -247,8 +256,23 @@ function Home() {
 
                                 <>
                                     {/* Content for users who have NOT created an account */}
-                                    <p className='fs-4 text-center' style={{ color: 'black' }} dangerouslySetInnerHTML={{ __html: homepageText.heading_pre }}></p>
-                                    <div dangerouslySetInnerHTML={{ __html: homepageText.text1_pre }} />
+                                    <p className='fs-4 text-center mb-1'>
+                                        Welcome to<br />
+                                        <strong style={{ color: 'var(--wordgamle-accent)' }}>WordGAMLE</strong>
+                                    </p>
+                                    <p className="text-center">Your one-stop-shop for all things Word Games.</p>
+
+                                    <p className="text-center">
+                                        <button type="button" className="home-popup-link" onClick={() => setActiveHomePopup('shareChat')}>Share and Chat</button>
+                                        {' '}with friends &amp; family,{' '}
+                                        Create <button type="button" className="home-popup-link" onClick={() => handleNavigation('groups')}>Groups</button>
+                                        {' '}with <button type="button" className="home-popup-link" onClick={() => handleNavigation('groups')}>Leaderboards</button>,{' '}
+                                        find <button type="button" className="home-popup-link" onClick={() => navigate('/gametips')}>Tips and Tricks</button>
+                                        {' '}and...
+                                    </p>
+
+                                    <p className="text-center fw-bold">Get your GAMLE on!</p>
+
                                     <Row className='custom-button-row pb-3'>
                                         <Col>
                                             <Link className="btn btn-primary my-2 w-100" to={registerPath}>Create Account</Link>
@@ -257,27 +281,70 @@ function Home() {
                                             <Button className="my-2 w-100 white-btn" onClick={loginformClick}>Log In</Button>
                                         </Col>
                                     </Row>
-                                    <Row className="pb-3">
-                                        <Col className="">
-                                            <p className="text-center m-0">
-                                                {parts[0]}
-                                                <a href="#" onClick={inviteFriends}> Invite Friends</a>
-                                                {parts[1]}
-                                            </p>
-                                        </Col>
-                                    </Row>
-                                    <div className="game-select-row" ref={dragScrollRef} {...dragScrollHandlers}>
-                                        <Button className="wordle-btn game-select-btn" onClick={() => handleNavigation('wordle')}>Wordle</Button>
-                                        <Button className="connections-btn game-select-btn" onClick={() => handleNavigation('connections')}>Connections</Button>
-                                        <Button className="phrazle-btn game-select-btn" onClick={() => handleNavigation('phrazle')}>Phrazle</Button>
-                                        <Button className="quordle-btn game-select-btn" onClick={() => handleNavigation('quordle')}>Quordle</Button>
-                                        <Button className="octordle-btn game-select-btn" onClick={() => handleNavigation('octordle')}>Octordle</Button>
+
+                                    <h5 className="text-center fw-bold mb-4">How it works...</h5>
+
+                                    {/* Step 1 - Play */}
+                                    <div className="text-center mb-4">
+                                        <div className="home-step-circle mx-auto">1</div>
+                                        <p className="fw-bold mb-1" style={{ color: 'var(--wordgamle-accent)' }}>PLAY</p>
+                                        <p className="fw-bold mb-1">Play your favorite word games</p>
+                                        <p className="mb-2">Currently we feature:</p>
+                                        <div className="game-select-row" ref={dragScrollRef} {...dragScrollHandlers}>
+                                            <Button className="wordle-btn game-select-btn" onClick={() => handleNavigation('wordle')}>Wordle</Button>
+                                            <Button className="connections-btn game-select-btn" onClick={() => handleNavigation('connections')}>Connections</Button>
+                                            <Button className="phrazle-btn game-select-btn" onClick={() => handleNavigation('phrazle')}>Phrazle</Button>
+                                            <Button className="quordle-btn game-select-btn" onClick={() => handleNavigation('quordle')}>Quordle</Button>
+                                            <Button className="octordle-btn game-select-btn" onClick={() => handleNavigation('octordle')}>Octordle</Button>
+                                        </div>
+                                        <p className="mt-2 mb-0">With more games to come!</p>
                                     </div>
-                                    <Row>
-                                        <Col className="py-3">
-                                            <p className='text-center m-0' dangerouslySetInnerHTML={{ __html: homepageText.text2 }}></p>
+
+                                    {/* Step 2 - Store */}
+                                    <div className="text-center mb-4">
+                                        <div className="home-step-circle mx-auto">2</div>
+                                        <p className="fw-bold mb-1" style={{ color: 'var(--wordgamle-accent)' }}>STORE</p>
+                                        <p className="fw-bold mb-1">Paste your results into WordGAMLE</p>
+                                        <p className="mb-1">Copy &amp; paste your game result into the box provided.</p>
+                                        <p className="mb-1">
+                                            <button type="button" className="home-popup-link" onClick={() => setActiveHomePopup('storeHowTo')}>CLICK HERE to see how!</button>
+                                        </p>
+                                        <p className="mb-0">
+                                            You'll see enhanced Stats and a Gamle Score for each game.
+                                        </p>
+                                    </div>
+
+                                    {/* Step 3 - Share & Compare */}
+                                    <div className="text-center mb-4">
+                                        <div className="home-step-circle mx-auto">3</div>
+                                        <p className="fw-bold mb-1" style={{ color: 'var(--wordgamle-accent)' }}>SHARE &amp; COMPARE</p>
+                                        <p className="fw-bold mb-1">Share and Create Leaderboards</p>
+                                        <p className="mb-0">
+                                            <button type="button" className="home-popup-link" onClick={() => setActiveHomePopup('shareChat')}>Share</button>
+                                            {' '}your results with fellow Gamlers, Compete with friends in Daily, Monthly and Yearly{' '}
+                                            <button type="button" className="home-popup-link" onClick={() => handleNavigation('groups')}>Group Leaderboards</button>
+                                            {' '}and Track your results and stats over time!
+                                        </p>
+                                    </div>
+
+                                    <Row className='custom-button-row pb-3'>
+                                        <Col>
+                                            <Link className="btn btn-primary my-2 w-100" to={registerPath}>Create Your Account Today</Link>
                                         </Col>
                                     </Row>
+
+                                    <HomeInfoPopup
+                                        show={activeHomePopup === 'shareChat'}
+                                        onHide={() => setActiveHomePopup(null)}
+                                        image={shareChatPopupImg}
+                                        alt="Example of a group's shared leaderboard and chat"
+                                    />
+                                    <HomeInfoPopup
+                                        show={activeHomePopup === 'storeHowTo'}
+                                        onHide={() => setActiveHomePopup(null)}
+                                        image={storeHowToPopupImg}
+                                        alt="How to copy and paste your game result into WordGAMLE"
+                                    />
                                 </>
                             ) : (
                                 <>
