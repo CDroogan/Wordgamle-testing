@@ -319,15 +319,25 @@ function Home() {
                                         <p className="fw-bold mb-1">Share and Create Leaderboards</p>
                                         <p className="mb-0">
                                             <button type="button" className="home-popup-link" onClick={() => setActiveHomePopup('shareChat')}>Share</button>
-                                            {' '}your results with fellow Gamlers, Compete with friends in Daily, Monthly and Yearly{' '}
+                                            {' '}your results with fellow Gamlers,<br />
+                                            Compete with friends in Daily,<br />
+                                            Monthly and Yearly{' '}
                                             <button type="button" className="home-popup-link" onClick={() => setActiveHomePopup('leaderboards')}>Group Leaderboards</button>
-                                            {' '}and Track your results and stats over time!
+                                            {' '}and<br />
+                                            Track your results and stats over time!
                                         </p>
                                     </div>
 
                                     <Row className='custom-button-row pb-3'>
                                         <Col>
                                             <Link className="btn btn-primary my-2 w-100" to={registerPath}>Create Your Account Today</Link>
+                                        </Col>
+                                    </Row>
+                                    <Row className='custom-button-row pb-3'>
+                                        <Col>
+                                            <Button className="my-2 w-100 white-btn" onClick={loginformClick}>
+                                                Already have an account?<br />Log In Here
+                                            </Button>
                                         </Col>
                                     </Row>
 

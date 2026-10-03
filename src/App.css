@@ -511,7 +511,7 @@ cursor: pointer;
 .btn.white-btn{
   background-color: #ffffff !important;
   border: none;
-  color:#000000;
+  color: var(--wordgamle-accent);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 
 }
