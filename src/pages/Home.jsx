@@ -19,6 +19,11 @@ import useDragScroll from "../hooks/useDragScroll";
 import HomeInfoPopup from "../components/HomeInfoPopup";
 import shareChatPopupImg from "../assets/homepage-popups/share-and-chat.jpg";
 import storeHowToPopupImg from "../assets/homepage-popups/store-how-to.png";
+import groupsPopupImg from "../assets/homepage-popups/groups.webp";
+import leaderboardsPopupImg from "../assets/homepage-popups/leaderboards.png";
+import enhancedStatsPopupImg from "../assets/homepage-popups/enhanced-stats.png";
+import gamleScorePopupImg from "../assets/homepage-popups/gamle-score.jpg";
+import WordGamleLogo from '../WordleTitleLogo.png';
 
 function Home() {
     const baseURL = import.meta.env.VITE_BASE_URL;
@@ -248,17 +253,17 @@ function Home() {
 
                                 <>
                                     {/* Content for users who have NOT created an account */}
-                                    <p className='fs-4 text-center mb-3'>
-                                        Welcome to<br />
-                                        <strong style={{ color: 'var(--wordgamle-accent)' }}>WordGAMLE</strong>
+                                    <p className="text-center mb-1">Welcome to</p>
+                                    <p className="text-center mb-3">
+                                        <img src={WordGamleLogo} alt="WordGAMLE" style={{ maxWidth: '220px' }} />
                                     </p>
                                     <p className="text-center">Your one-stop-shop for all things Word Games.</p>
 
                                     <p className="text-center">
                                         <button type="button" className="home-popup-link" onClick={() => setActiveHomePopup('shareChat')}>Share and Chat</button>
                                         {' '}with friends &amp; family,<br />
-                                        Create <button type="button" className="home-popup-link" onClick={() => handleNavigation('groups')}>Groups</button>
-                                        {' '}with <button type="button" className="home-popup-link" onClick={() => handleNavigation('groups')}>Leaderboards</button>,<br />
+                                        Create <button type="button" className="home-popup-link" onClick={() => setActiveHomePopup('groups')}>Groups</button>
+                                        {' '}with <button type="button" className="home-popup-link" onClick={() => setActiveHomePopup('leaderboards')}>Leaderboards</button>,<br />
                                         find <button type="button" className="home-popup-link" onClick={() => navigate('/gametips')}>Tips and Tricks</button>
                                         {' '}and...
                                     </p>
@@ -302,7 +307,8 @@ function Home() {
                                             <button type="button" className="home-popup-link" onClick={() => setActiveHomePopup('storeHowTo')}>CLICK HERE to see how!</button>
                                         </p>
                                         <p className="mb-0">
-                                            You'll see enhanced Stats and a Gamle Score for each game.
+                                            You'll see <button type="button" className="home-popup-link" onClick={() => setActiveHomePopup('enhancedStats')}>enhanced Stats</button>
+                                            {' '}and a <button type="button" className="home-popup-link" onClick={() => setActiveHomePopup('gamleScore')}>Gamle Score</button> for each game.
                                         </p>
                                     </div>
 
@@ -314,7 +320,7 @@ function Home() {
                                         <p className="mb-0">
                                             <button type="button" className="home-popup-link" onClick={() => setActiveHomePopup('shareChat')}>Share</button>
                                             {' '}your results with fellow Gamlers, Compete with friends in Daily, Monthly and Yearly{' '}
-                                            <button type="button" className="home-popup-link" onClick={() => handleNavigation('groups')}>Group Leaderboards</button>
+                                            <button type="button" className="home-popup-link" onClick={() => setActiveHomePopup('leaderboards')}>Group Leaderboards</button>
                                             {' '}and Track your results and stats over time!
                                         </p>
                                     </div>
@@ -336,6 +342,30 @@ function Home() {
                                         onHide={() => setActiveHomePopup(null)}
                                         image={storeHowToPopupImg}
                                         alt="How to copy and paste your game result into WordGAMLE"
+                                    />
+                                    <HomeInfoPopup
+                                        show={activeHomePopup === 'groups'}
+                                        onHide={() => setActiveHomePopup(null)}
+                                        image={groupsPopupImg}
+                                        alt="Example of a group's member list"
+                                    />
+                                    <HomeInfoPopup
+                                        show={activeHomePopup === 'leaderboards'}
+                                        onHide={() => setActiveHomePopup(null)}
+                                        image={leaderboardsPopupImg}
+                                        alt="Example of Daily, Weekly, Monthly and Yearly group leaderboards"
+                                    />
+                                    <HomeInfoPopup
+                                        show={activeHomePopup === 'enhancedStats'}
+                                        onHide={() => setActiveHomePopup(null)}
+                                        image={enhancedStatsPopupImg}
+                                        alt="Example of enhanced stats for a game"
+                                    />
+                                    <HomeInfoPopup
+                                        show={activeHomePopup === 'gamleScore'}
+                                        onHide={() => setActiveHomePopup(null)}
+                                        image={gamleScorePopupImg}
+                                        alt="Example of a Gamle Score"
                                     />
                                 </>
                             ) : (
