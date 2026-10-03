@@ -8,7 +8,6 @@ import { toast } from 'react-toastify';
 import Axios from 'axios';
 import FeedbackButton from './FeedbackButton';
 import { useLocation } from 'react-router-dom';
-import TitleLogo from '../../src/WordleTitleLogo.png';
 import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
 import "swiper/css/navigation";
@@ -240,13 +239,6 @@ function Home() {
 
     return isAuthenticated ? (
         <Container className="login-section">
-            <Row className="justify-content-center align-items-center py-2 text-center">
-                <Col xs={8}>
-                    <Link to="/">
-                    <img className='img-fluid' src={TitleLogo} alt="WordleGame" />
-                    </Link>
-                </Col>
-            </Row>
             <Row className="align-content-center justify-content-center text-center">
                 <Col md={6} className='bg-white px-3 py-3 text-center'>
                     <Row>
@@ -256,7 +248,7 @@ function Home() {
 
                                 <>
                                     {/* Content for users who have NOT created an account */}
-                                    <p className='fs-4 text-center mb-1'>
+                                    <p className='fs-4 text-center mb-3'>
                                         Welcome to<br />
                                         <strong style={{ color: 'var(--wordgamle-accent)' }}>WordGAMLE</strong>
                                     </p>
@@ -264,9 +256,9 @@ function Home() {
 
                                     <p className="text-center">
                                         <button type="button" className="home-popup-link" onClick={() => setActiveHomePopup('shareChat')}>Share and Chat</button>
-                                        {' '}with friends &amp; family,{' '}
+                                        {' '}with friends &amp; family,<br />
                                         Create <button type="button" className="home-popup-link" onClick={() => handleNavigation('groups')}>Groups</button>
-                                        {' '}with <button type="button" className="home-popup-link" onClick={() => handleNavigation('groups')}>Leaderboards</button>,{' '}
+                                        {' '}with <button type="button" className="home-popup-link" onClick={() => handleNavigation('groups')}>Leaderboards</button>,<br />
                                         find <button type="button" className="home-popup-link" onClick={() => navigate('/gametips')}>Tips and Tricks</button>
                                         {' '}and...
                                     </p>
@@ -297,7 +289,7 @@ function Home() {
                                             <Button className="quordle-btn game-select-btn" onClick={() => handleNavigation('quordle')}>Quordle</Button>
                                             <Button className="octordle-btn game-select-btn" onClick={() => handleNavigation('octordle')}>Octordle</Button>
                                         </div>
-                                        <p className="mt-2 mb-0">With more games to come!</p>
+                                        <p className="mt-2 mb-0 fw-bold">With more games to come!</p>
                                     </div>
 
                                     {/* Step 2 - Store */}
