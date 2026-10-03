@@ -23,6 +23,7 @@ import groupsPopupImg from "../assets/homepage-popups/groups.webp";
 import leaderboardsPopupImg from "../assets/homepage-popups/leaderboards.png";
 import enhancedStatsPopupImg from "../assets/homepage-popups/enhanced-stats.png";
 import gamleScorePopupImg from "../assets/homepage-popups/gamle-score.jpg";
+import trackResultsPopupImg from "../assets/homepage-popups/track-results.jpg";
 import WordGamleLogo from '../WordleTitleLogo.png';
 
 function Home() {
@@ -253,7 +254,7 @@ function Home() {
 
                                 <>
                                     {/* Content for users who have NOT created an account */}
-                                    <p className="text-center mb-1">Welcome to</p>
+                                    <h5 className="text-center fw-bold" style={{ marginBottom: '2px' }}>Welcome to</h5>
                                     <p className="text-center mb-3">
                                         <img src={WordGamleLogo} alt="WordGAMLE" style={{ maxWidth: '220px' }} />
                                     </p>
@@ -324,7 +325,7 @@ function Home() {
                                             Monthly and Yearly{' '}
                                             <button type="button" className="home-popup-link" onClick={() => setActiveHomePopup('leaderboards')}>Group Leaderboards</button>
                                             {' '}and<br />
-                                            Track your results and stats over time!
+                                            <button type="button" className="home-popup-link" onClick={() => setActiveHomePopup('trackResults')}>Track your results and stats over time</button>!
                                         </p>
                                     </div>
 
@@ -376,6 +377,12 @@ function Home() {
                                         onHide={() => setActiveHomePopup(null)}
                                         image={gamleScorePopupImg}
                                         alt="Example of a Gamle Score"
+                                    />
+                                    <HomeInfoPopup
+                                        show={activeHomePopup === 'trackResults'}
+                                        onHide={() => setActiveHomePopup(null)}
+                                        image={trackResultsPopupImg}
+                                        alt="Example of tracking your results and stats over time"
                                     />
                                 </>
                             ) : (
