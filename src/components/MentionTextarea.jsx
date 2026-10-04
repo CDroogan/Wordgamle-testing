@@ -10,7 +10,7 @@ import { MENTION_MARK, findActiveWord, renderMentionsPreview } from '../utils/me
 // one confirms the mention (notifies them, renders blue once posted);
 // ignoring the dropdown and continuing to type leaves it as plain text
 // with no mention at all.
-function MentionTextarea({ value, onChange, placeholder, minRows, maxRows, baseURL, className }) {
+function MentionTextarea({ value, onChange, placeholder, minRows, maxRows, baseURL, className, showPreview = true }) {
   const textareaRef = useRef(null);
   const [activeWord, setActiveWord] = useState(null); // { start, end, query }
   const [suggestions, setSuggestions] = useState([]);
@@ -61,8 +61,13 @@ function MentionTextarea({ value, onChange, placeholder, minRows, maxRows, baseU
 
   // Only switch into the overlay rendering once there's an actual
   // confirmed mention to show - the common case (no mention yet) stays
-  // a perfectly normal, opaque textarea with zero extra risk.
-  const hasConfirmedMention = value.includes(MENTION_MARK);
+  // a perfectly normal, opaque textarea with zero extra risk. Also
+  // gated by showPreview: this trick needs the textarea to be the only
+  // thing sizing its own box - safe in the GameFeed's simple composer,
+  // but unreliable wherever the textarea shares a tight flex row with
+  // another element (Group Chat's Send button), so Chat opts out and
+  // a confirmed mention there just stays plain text until it's posted.
+  const hasConfirmedMention = showPreview && value.includes(MENTION_MARK);
   const backdropRef = useRef(null);
   const boxClassName = className || 'form-control';
 
