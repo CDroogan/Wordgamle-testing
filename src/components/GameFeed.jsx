@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Button, Form } from 'react-bootstrap';
 import TextareaAutosize from 'react-textarea-autosize';
 import Axios from 'axios';
@@ -6,7 +6,9 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 import { toast } from 'react-toastify';
+import { FaImage, FaTimes } from 'react-icons/fa';
 import ReactionBar from './ReactionBar';
+import MemberProfile from '../constant/Models/MemberProfile';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -18,18 +20,196 @@ dayjs.extend(timezone);
 const viewerTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 const formatLocalTime = (utcString) => dayjs.utc(utcString).tz(viewerTimezone).format('MMM D, h:mm A');
 
+// Finds the @mention token (if any) the cursor is currently sitting
+// inside, e.g. typing "...hi @cass" with the cursor at the end returns
+// { start: <index of @>, end: <cursor>, query: "cass" }.
+function findActiveMention(text, cursorPos) {
+  const uptoCursor = text.slice(0, cursorPos);
+  const atIndex = uptoCursor.lastIndexOf('@');
+  if (atIndex === -1) return null;
+  const between = uptoCursor.slice(atIndex + 1);
+  if (/^[A-Za-z0-9_]*$/.test(between)) {
+    return { start: atIndex, end: cursorPos, query: between };
+  }
+  return null;
+}
+
+// Turns any "@username" in a post/comment into a clickable, blue
+// mention - same styling as the other clickable phrases on the
+// homepage.
+function renderWithMentions(text, onMentionClick) {
+  const parts = text.split(/(@[A-Za-z0-9_]+)/g);
+  return parts.map((part, i) => {
+    const m = part.match(/^@([A-Za-z0-9_]+)$/);
+    if (m) {
+      return (
+        <button
+          key={i}
+          type="button"
+          className="home-popup-link"
+          onClick={(e) => { e.stopPropagation(); onMentionClick(m[1]); }}
+        >
+          {part}
+        </button>
+      );
+    }
+    return part;
+  });
+}
+
+// A plain textarea plus an @mention autocomplete dropdown - shared by
+// the post composer and every comment box so both work identically.
+function MentionTextarea({ value, onChange, placeholder, minRows, maxRows, baseURL }) {
+  const textareaRef = useRef(null);
+  const [mention, setMention] = useState(null); // { start, end, query }
+  const [suggestions, setSuggestions] = useState([]);
+
+  const handleChange = (e) => {
+    const newText = e.target.value;
+    const cursorPos = e.target.selectionStart;
+    onChange(newText);
+    setMention(findActiveMention(newText, cursorPos));
+  };
+
+  useEffect(() => {
+    if (!mention || mention.query.length === 0) {
+      setSuggestions([]);
+      return;
+    }
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      try {
+        const res = await Axios.get(`${baseURL}/user/search-users.php`, { params: { q: mention.query } });
+        if (!cancelled && res.data.success) setSuggestions(res.data.users);
+      } catch (err) {
+        // Autocomplete failing silently is fine - it's a convenience,
+        // not something that should block typing a normal @ mention.
+      }
+    }, 150);
+    return () => { cancelled = true; clearTimeout(timer); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mention?.query, baseURL]);
+
+  const selectMention = (selectedUsername) => {
+    if (!mention) return;
+    const before = value.slice(0, mention.start);
+    const after = value.slice(mention.end);
+    const newText = `${before}@${selectedUsername} ${after}`;
+    onChange(newText);
+    setMention(null);
+    setSuggestions([]);
+    setTimeout(() => {
+      if (textareaRef.current) {
+        const pos = before.length + selectedUsername.length + 2;
+        textareaRef.current.setSelectionRange(pos, pos);
+        textareaRef.current.focus();
+      }
+    }, 0);
+  };
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <TextareaAutosize
+        ref={textareaRef}
+        minRows={minRows}
+        maxRows={maxRows}
+        value={value}
+        onChange={handleChange}
+        placeholder={placeholder}
+        className="form-control"
+      />
+      {mention && suggestions.length > 0 && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '100%',
+            left: 0,
+            right: 0,
+            background: '#fff',
+            border: '1px solid #ddd',
+            borderRadius: '8px',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+            zIndex: 20,
+            maxHeight: '160px',
+            overflowY: 'auto',
+          }}
+        >
+          {suggestions.map((u) => (
+            <div
+              key={u.id}
+              onClick={() => selectMention(u.username)}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px', cursor: 'pointer' }}
+            >
+              <img
+                src={u.avatar ? `${baseURL}/user/uploads/${u.avatar}` : `${baseURL}/user/uploads/default_avatar.png`}
+                alt=""
+                style={{ width: '20px', height: '20px', borderRadius: '50%', objectFit: 'cover' }}
+              />
+              <span>{u.username}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// A small "add a photo" control: a button that opens the file picker,
+// and once a file is chosen, a thumbnail preview with a way to remove
+// it before posting.
+function ImagePicker({ image, onChange }) {
+  const inputRef = useRef(null);
+  const previewUrl = useMemo(() => (image ? URL.createObjectURL(image) : null), [image]);
+
+  useEffect(() => {
+    return () => { if (previewUrl) URL.revokeObjectURL(previewUrl); };
+  }, [previewUrl]);
+
+  return (
+    <div className="d-flex align-items-center gap-2 mb-2">
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={(e) => onChange(e.target.files?.[0] || null)}
+      />
+      <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => inputRef.current?.click()}>
+        <FaImage className="me-1" /> Add photo
+      </button>
+      {previewUrl && (
+        <div style={{ position: 'relative', display: 'inline-block' }}>
+          <img src={previewUrl} alt="Preview" style={{ height: '48px', borderRadius: '6px' }} />
+          <button
+            type="button"
+            className="btn btn-sm btn-danger"
+            style={{ position: 'absolute', top: '-8px', right: '-8px', borderRadius: '50%', padding: '2px 6px' }}
+            onClick={() => onChange(null)}
+          >
+            <FaTimes size={10} />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // The GameFeed: a global, chronological feed any Gamler can post to and
 // see, completely separate from Groups. Posting mirrors the same
 // copy/paste flow already used for personal stats - the pasted text is
 // stored and shown verbatim (it already contains the real score-grid
 // characters), not re-parsed into a custom grid component.
-function GameFeed({ userId, username, avatar, baseURL }) {
+function GameFeed({ userId, baseURL, focusPostId }) {
   const [posts, setPosts] = useState([]);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
   const [postText, setPostText] = useState('');
+  const [postImage, setPostImage] = useState(null);
   const [expandedComments, setExpandedComments] = useState({}); // postId -> comments[]
   const [commentDrafts, setCommentDrafts] = useState({}); // postId -> text
+  const [commentImages, setCommentImages] = useState({}); // postId -> File
+  const [selectedMember, setSelectedMember] = useState(null);
+  const [showProfile, setShowProfile] = useState(false);
   const sentinelRef = useRef(null);
 
   const fetchFeed = useCallback(async (beforeId) => {
@@ -52,6 +232,30 @@ function GameFeed({ userId, username, avatar, baseURL }) {
     fetchFeed();
   }, [fetchFeed]);
 
+  // Arriving from a mention notification - jump straight to that post
+  // (even if the paginated feed hasn't loaded back that far yet) and
+  // open its comments.
+  useEffect(() => {
+    if (!focusPostId) return;
+    (async () => {
+      try {
+        const res = await Axios.get(`${baseURL}/gamefeed/get-post.php`, { params: { post_id: focusPostId } });
+        if (res.data.success) {
+          const post = res.data.post;
+          setPosts((prev) => (prev.some((p) => p.id === post.id) ? prev : [post, ...prev]));
+          setTimeout(() => {
+            const el = document.getElementById(`gamefeed-post-${post.id}`);
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 300);
+          toggleComments(post.id, true);
+        }
+      } catch (err) {
+        console.error('Failed to load mentioned post:', err);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusPostId, baseURL]);
+
   // Infinite scroll: load the next page once the sentinel at the bottom
   // of the list comes into view.
   useEffect(() => {
@@ -65,21 +269,38 @@ function GameFeed({ userId, username, avatar, baseURL }) {
     return () => observer.disconnect();
   }, [fetchFeed, hasMore, loading, posts]);
 
+  const handleMentionClick = async (clickedUsername) => {
+    try {
+      const res = await Axios.get(`${baseURL}/user/get-user-by-username.php`, { params: { username: clickedUsername } });
+      if (res.data.success) {
+        setSelectedMember(res.data.user);
+        setShowProfile(true);
+      } else {
+        toast.error(res.data.error || 'Gamler not found.');
+      }
+    } catch (err) {
+      toast.error('Could not load that profile.');
+    }
+  };
+
   const handleSubmitPost = async (event) => {
     event.preventDefault();
-    if (!postText.trim()) return;
+    if (!postText.trim() && !postImage) return;
     if (!userId) {
       toast.error("Couldn't tell who you are - try logging in again.");
       return;
     }
 
     try {
-      const res = await Axios.post(`${baseURL}/gamefeed/create-post.php`, {
-        user_id: userId,
-        content: postText.trim(),
-      });
+      const formData = new FormData();
+      formData.append('user_id', userId);
+      formData.append('content', postText.trim());
+      if (postImage) formData.append('image', postImage);
+
+      const res = await Axios.post(`${baseURL}/gamefeed/create-post.php`, formData);
       if (res.data.success) {
         setPostText('');
+        setPostImage(null);
         fetchFeed();
       } else {
         toast.error(res.data.error || 'Something went wrong while posting.');
@@ -102,8 +323,8 @@ function GameFeed({ userId, username, avatar, baseURL }) {
     }
   };
 
-  const toggleComments = async (postId) => {
-    if (expandedComments[postId]) {
+  const toggleComments = async (postId, forceOpen = false) => {
+    if (expandedComments[postId] && !forceOpen) {
       setExpandedComments((prev) => {
         const next = { ...prev };
         delete next[postId];
@@ -125,15 +346,23 @@ function GameFeed({ userId, username, avatar, baseURL }) {
 
   const handleAddComment = async (postId) => {
     const text = (commentDrafts[postId] || '').trim();
-    if (!text) return;
+    const image = commentImages[postId];
+    if (!text && !image) return;
     if (!userId) {
       toast.error("Couldn't tell who you are - try logging in again.");
       return;
     }
     try {
-      const res = await Axios.post(`${baseURL}/gamefeed/add-comment.php`, { post_id: postId, user_id: userId, text });
+      const formData = new FormData();
+      formData.append('post_id', postId);
+      formData.append('user_id', userId);
+      formData.append('text', text);
+      if (image) formData.append('image', image);
+
+      const res = await Axios.post(`${baseURL}/gamefeed/add-comment.php`, formData);
       if (res.data.success) {
         setCommentDrafts((prev) => ({ ...prev, [postId]: '' }));
+        setCommentImages((prev) => ({ ...prev, [postId]: null }));
         const commentsRes = await Axios.get(`${baseURL}/gamefeed/get-comments.php`, { params: { post_id: postId } });
         if (commentsRes.data.success) {
           setExpandedComments((prev) => ({ ...prev, [postId]: commentsRes.data.comments }));
@@ -150,17 +379,20 @@ function GameFeed({ userId, username, avatar, baseURL }) {
   return (
     <div className="text-start">
       {/* Post composer - a Gamler can type freely, paste a game result
-          (inserted at the cursor, same as any normal paste), or mix both -
-          text before and/or after the pasted result - all in one field. */}
+          (inserted at the cursor, same as any normal paste), attach a
+          photo, or mix all of it in one post. */}
       <Form onSubmit={handleSubmitPost} className="border rounded p-3 mb-4">
-        <TextareaAutosize
-          minRows={2}
-          maxRows={12}
-          value={postText}
-          onChange={(e) => setPostText(e.target.value)}
-          placeholder="Share something with other Gamlers..."
-          className="form-control mb-2"
-        />
+        <div className="mb-2">
+          <MentionTextarea
+            value={postText}
+            onChange={setPostText}
+            minRows={2}
+            maxRows={12}
+            placeholder="Share something with other Gamlers... (type @ to mention someone)"
+            baseURL={baseURL}
+          />
+        </div>
+        <ImagePicker image={postImage} onChange={setPostImage} />
         <div className="text-end">
           <Button type="submit" variant="primary">Post</Button>
         </div>
@@ -168,7 +400,7 @@ function GameFeed({ userId, username, avatar, baseURL }) {
 
       {/* Feed */}
       {posts.map((post) => (
-        <div key={post.id} className="border rounded p-3 mb-3">
+        <div key={post.id} id={`gamefeed-post-${post.id}`} className="border rounded p-3 mb-3">
           <div className="d-flex align-items-center mb-2">
             <img
               src={post.avatar ? `${baseURL}/user/uploads/${post.avatar}` : `${baseURL}/user/uploads/default_avatar.png`}
@@ -184,7 +416,13 @@ function GameFeed({ userId, username, avatar, baseURL }) {
 
           {post.content && (
             <div className="mb-2" style={{ whiteSpace: 'pre-wrap' }}>
-              {post.content}
+              {renderWithMentions(post.content, handleMentionClick)}
+            </div>
+          )}
+
+          {post.image && (
+            <div className="mb-2">
+              <img src={`${baseURL}/gamefeed/uploads/${post.image}`} alt="" className="img-fluid rounded" style={{ maxHeight: '400px' }} />
             </div>
           )}
 
@@ -217,19 +455,28 @@ function GameFeed({ userId, username, avatar, baseURL }) {
                   />
                   <div style={{ whiteSpace: 'pre-wrap' }}>
                     <span className="fw-bold me-1">{c.username}</span>
-                    <span>{c.text}</span>
+                    <span>{renderWithMentions(c.text, handleMentionClick)}</span>
+                    {c.image && (
+                      <div className="mt-1">
+                        <img src={`${baseURL}/gamefeed/uploads/${c.image}`} alt="" className="img-fluid rounded" style={{ maxHeight: '200px' }} />
+                      </div>
+                    )}
                     <div className="text-muted" style={{ fontSize: '0.65rem' }}>{formatLocalTime(c.created_at)}</div>
                   </div>
                 </div>
               ))}
+              <ImagePicker
+                image={commentImages[post.id] || null}
+                onChange={(file) => setCommentImages((prev) => ({ ...prev, [post.id]: file }))}
+              />
               <div className="d-flex gap-2 align-items-end">
-                <TextareaAutosize
+                <MentionTextarea
+                  value={commentDrafts[post.id] || ''}
+                  onChange={(text) => setCommentDrafts((prev) => ({ ...prev, [post.id]: text }))}
                   minRows={1}
                   maxRows={8}
-                  placeholder="Write a comment..."
-                  value={commentDrafts[post.id] || ''}
-                  onChange={(e) => setCommentDrafts((prev) => ({ ...prev, [post.id]: e.target.value }))}
-                  className="form-control"
+                  placeholder="Write a comment... (type @ to mention someone)"
+                  baseURL={baseURL}
                 />
                 <Button size="sm" onClick={() => handleAddComment(post.id)}>Send</Button>
               </div>
@@ -243,6 +490,13 @@ function GameFeed({ userId, username, avatar, baseURL }) {
       )}
 
       <div ref={sentinelRef} />
+
+      <MemberProfile
+        show={showProfile}
+        onHide={() => setShowProfile(false)}
+        selectedMember={selectedMember}
+        baseURL={baseURL}
+      />
     </div>
   );
 }

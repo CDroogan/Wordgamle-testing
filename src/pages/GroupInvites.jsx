@@ -13,6 +13,7 @@ const GroupInvites = () => {
   const userId = USER_AUTH_DATA?.id;
   const [invites, setInvites] = useState([]);
   const [groupMessages, setGroupMessages] = useState([]);
+  const [mentions, setMentions] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
   
   const inviteIntervalRef = useRef(null);
@@ -35,8 +36,46 @@ const GroupInvites = () => {
       fetchGroupInvites();
       inviteIntervalRef.current = setInterval(fetchGroupInvites, 8000);
       return () => clearInterval(inviteIntervalRef.current);
-    
+
   }, []);
+
+  // GameFeed @mention polling - completely separate from Groups, so it
+  // has its own fetch, but shows up in the same bell dropdown/badge.
+  const mentionIntervalRef = useRef(null);
+  useEffect(() => {
+    fetchMentions();
+    mentionIntervalRef.current = setInterval(fetchMentions, 8000);
+    return () => clearInterval(mentionIntervalRef.current);
+  }, []);
+
+  const fetchMentions = async () => {
+    try {
+      const response = await axios.get(`${baseURL}/gamefeed/get-mentions.php?user_id=${userId}`);
+      const newMentions = Array.isArray(response.data.mentions) ? response.data.mentions : [];
+      setMentions(newMentions);
+    } catch (error) {
+      console.error('Error fetching mentions:', error);
+    }
+  };
+
+  const getUnseenMentionCount = (list) => {
+    if (!Array.isArray(list)) return 0;
+    return list.filter((m) => !m.seen_at).length;
+  };
+
+  const handleClickMention = async (mention) => {
+    setShowDropdown(false);
+    try {
+      await axios.post(`${baseURL}/gamefeed/mark-mentions-seen.php`, {
+        user_id: userId,
+        mention_id: mention.id,
+      });
+      setMentions((prev) => prev.map((m) => (m.id === mention.id ? { ...m, seen_at: 'seen' } : m)));
+      navigate(`/?post=${mention.post_id}`);
+    } catch (error) {
+      console.error('Error marking mention seen:', error);
+    }
+  };
 
   useEffect(() => {
     fetchGroupMessages();
@@ -175,9 +214,9 @@ const fetchGroupMessages = async () => {
 // in the list.
 useEffect(() => {
   setunReadCount(
-    getUnreadCount(groupMessages, userId) + (Array.isArray(invites) ? invites.length : 0)
+    getUnreadCount(groupMessages, userId) + (Array.isArray(invites) ? invites.length : 0) + getUnseenMentionCount(mentions)
   );
-}, [groupMessages, invites, userId]);
+}, [groupMessages, invites, mentions, userId]);
 
   // Accept invite
 const handleAcceptInvite = async (inviteId, groupId) => {
@@ -552,6 +591,9 @@ const handleClick = async (
       await axios.post(`${baseURL}/groups/mark-all-seen.php`, {
         user_id: userId,
       });
+      await axios.post(`${baseURL}/gamefeed/mark-mentions-seen.php`, {
+        user_id: userId,
+      });
 
       const updatedMessages = groupMessages.map((msg) => ({
         ...msg,
@@ -561,6 +603,7 @@ const handleClick = async (
       }));
 
       setGroupMessages(updatedMessages);
+      setMentions((prev) => prev.map((m) => ({ ...m, seen_at: 'seen' })));
 
     } catch (error) {
       console.error("Error marking all as read:", error);
@@ -646,7 +689,7 @@ const handleClick = async (
 
         </Dropdown.Header>
 
-          {(Array.isArray(invites) && invites.length > 0) || (Array.isArray(groupMessages) && groupMessages.length > 0) ? (
+          {(Array.isArray(invites) && invites.length > 0) || (Array.isArray(groupMessages) && groupMessages.length > 0) || (Array.isArray(mentions) && mentions.length > 0) ? (
   <div
     style={{
       maxHeight: "300px",        // adjust height as needed
@@ -682,6 +725,37 @@ const handleClick = async (
             </Button>
           </ListGroup.Item>
         ))
+      }
+
+      {/* GameFeed @mentions - completely separate from Groups, shown in
+          the same bell dropdown for one unified notification list. */}
+      {Array.isArray(mentions) && mentions.length > 0 &&
+        mentions.map((mention) => {
+          const isUnread = !previewAllRead && !mention.seen_at;
+          return (
+            <ListGroup.Item
+              key={`mention-${mention.id}`}
+              action
+              className={`${isUnread ? "unread-msg" : "read-msg"} msg-item`}
+              style={{ cursor: "pointer" }}
+              onClick={() => handleClickMention(mention)}
+            >
+              <div className="msg-row">
+                <div className="msg-left">
+                  <img
+                    src={mention.mentioning_avatar ? `${baseURL}/user/uploads/${mention.mentioning_avatar}` : `${baseURL}/user/uploads/default_avatar.png`}
+                    alt=""
+                    className="rounded-circle me-2"
+                    style={{ width: '24px', height: '24px', objectFit: 'cover', verticalAlign: 'middle' }}
+                  />
+                  <strong>{mention.mentioning_username}</strong> mentioned you in {mention.comment_id ? 'a comment' : 'a post'} on the GameFeed.
+                  <div className="time-ago">{timeAgo(mention.created_at, true)}</div>
+                </div>
+                {isUnread && <span className="unread-dot"></span>}
+              </div>
+            </ListGroup.Item>
+          );
+        })
       }
 
       {/* Group Messages */}

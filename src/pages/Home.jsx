@@ -410,7 +410,7 @@ function Home() {
                                     </p>
 
                                     <h5 className="text-center fw-bold mt-4 mb-3">Share with other Gamlers?</h5>
-                                    <GameFeed userId={userId} username={userAuthData?.username} avatar={userAuthData?.avatar} baseURL={baseURL} />
+                                    <GameFeed userId={userId} baseURL={baseURL} focusPostId={params.get('post')} />
                                 </>
                             )}
 
