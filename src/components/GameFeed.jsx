@@ -244,18 +244,18 @@ function GameFeed({ userId, baseURL, focusPostId }) {
   };
 
   return (
-    <div className="text-start">
+    <div className="text-start" style={{ background: '#330072', borderRadius: '1rem', padding: '1rem' }}>
       {/* Post composer - a Gamler can type freely, paste a game result
           (inserted at the cursor, same as any normal paste), attach a
           photo, or mix all of it in one post. */}
-      <Form onSubmit={handleSubmitPost} className="border rounded p-3 mb-4">
+      <Form onSubmit={handleSubmitPost} className="border rounded p-3 mb-4 bg-white">
         <div className="mb-2">
           <MentionTextarea
             value={postText}
             onChange={setPostText}
             minRows={2}
             maxRows={12}
-            placeholder="Share something with other Gamlers... (type a name to mention someone)"
+            placeholder="Share something with other Gamlers..."
             baseURL={baseURL}
           />
         </div>
@@ -267,7 +267,7 @@ function GameFeed({ userId, baseURL, focusPostId }) {
 
       {/* Feed */}
       {posts.map((post) => (
-        <div key={post.id} id={`gamefeed-post-${post.id}`} className="border rounded p-3 mb-3">
+        <div key={post.id} id={`gamefeed-post-${post.id}`} className="border rounded p-3 mb-3 bg-white">
           <div className="d-flex align-items-center mb-2">
             <img
               src={post.avatar ? `${baseURL}/user/uploads/${post.avatar}` : `${baseURL}/user/uploads/default_avatar.png`}
@@ -353,7 +353,7 @@ function GameFeed({ userId, baseURL, focusPostId }) {
       ))}
 
       {posts.length === 0 && !loading && (
-        <p className="text-center text-muted">No posts yet - be the first to share something!</p>
+        <p className="text-center text-white">No posts yet - be the first to share something!</p>
       )}
 
       <div ref={sentinelRef} />
