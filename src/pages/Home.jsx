@@ -17,6 +17,7 @@ import GroupScoreByDate from "../pages/GroupLeaderboard/GroupScoreByDate";
 import dayjs from "dayjs";
 import useDragScroll from "../hooks/useDragScroll";
 import HomeInfoPopup from "../components/HomeInfoPopup";
+import GameFeed from "../components/GameFeed";
 import shareChatPopupImg from "../assets/homepage-popups/share-and-chat.jpg";
 import storeHowToPopupImg from "../assets/homepage-popups/store-how-to.png";
 import groupsPopupImg from "../assets/homepage-popups/groups.webp";
@@ -388,8 +389,12 @@ function Home() {
                             ) : (
                                 <>
                                     {/* Content for users who HAVE created an account */}
-                                    <p className='fs-4 text-center' dangerouslySetInnerHTML={{ __html: homepageText.heading_post }}></p>
-                                    <div dangerouslySetInnerHTML={{ __html: homepageText.text1_post }} />
+                                    <p className="text-center mb-3">
+                                        <img src={WordGamleLogo} alt="WordGAMLE" style={{ maxWidth: '220px' }} />
+                                    </p>
+                                    <h5 className="text-center fw-bold">Your one-stop-shop for all things Word Games.</h5>
+                                    <p className="text-center text-muted">Click on each game button to see how to enter and store your word game results.</p>
+
                                     <div className="game-select-row" ref={dragScrollRef} {...dragScrollHandlers}>
                                         <Button className="wordle-btn game-select-btn" onClick={() => handleNavigation('wordle')}>Wordle</Button>
                                         <Button className="connections-btn game-select-btn" onClick={() => handleNavigation('connections')}>Connections</Button>
@@ -397,20 +402,15 @@ function Home() {
                                         <Button className="quordle-btn game-select-btn" onClick={() => handleNavigation('quordle')}>Quordle</Button>
                                         <Button className="octordle-btn game-select-btn" onClick={() => handleNavigation('octordle')}>Octordle</Button>
                                     </div>
-                                    <Row className='mt-3'>
-                                        <Col className="">
-                                            <p className="text-center">
-                                                {parts[0]}
-                                                <a href="#" onClick={inviteFriends}> Invite Friends</a>
-                                                {parts[1]}
-                                            </p>
-                                        </Col>
-                                    </Row>
-                                    <Row>
-                                        <Col className="">
-                                            <p className='text-center' dangerouslySetInnerHTML={{ __html: homepageText.text2 }}></p>
-                                        </Col>
-                                    </Row>
+
+                                    <h5 className="text-center fw-bold mt-4">Ready to compete?</h5>
+                                    <p className="text-center">
+                                        <button type="button" className="home-popup-link" onClick={inviteFriends}>Invite friends</button>
+                                        {' '}and <Link to="/groups" className="home-popup-link">create groups</Link> for Leaderboards and chatting!
+                                    </p>
+
+                                    <h5 className="text-center fw-bold mt-4 mb-3">Share with other Gamlers?</h5>
+                                    <GameFeed userId={userId} username={userAuthData?.username} avatar={userAuthData?.avatar} baseURL={baseURL} />
                                 </>
                             )}
 
