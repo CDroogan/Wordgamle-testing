@@ -61,6 +61,20 @@ function renderWithMentions(text, onMentionClick) {
   });
 }
 
+// Non-interactive version of the same rendering, used for the
+// "backdrop" that shows a confirmed mention in blue while still
+// composing - a static span, not a live-tracked cursor position, so
+// it doesn't carry the fragility of trying to highlight text that's
+// still actively being typed.
+function renderMentionsPreview(text) {
+  const parts = text.split(MENTION_PATTERN);
+  return parts.map((part, i) => (
+    i % 2 === 1
+      ? <span key={i} style={{ color: '#0d6efd', textDecoration: 'underline' }}>{part}</span>
+      : <React.Fragment key={i}>{part}</React.Fragment>
+  ));
+}
+
 // A plain textarea plus a mention autocomplete dropdown - shared by the
 // post composer and every comment box so both work identically. No "@"
 // or other trigger character - typing any part of a Gamler's name or
@@ -116,16 +130,44 @@ function MentionTextarea({ value, onChange, placeholder, minRows, maxRows, baseU
     }, 0);
   };
 
+  // Only switch into the overlay rendering once there's an actual
+  // confirmed mention to show - the common case (no mention yet) stays
+  // a perfectly normal, opaque textarea with zero extra risk.
+  const hasConfirmedMention = value.includes(MENTION_MARK);
+  const backdropRef = useRef(null);
+
   return (
     <div style={{ position: 'relative' }}>
+      {hasConfirmedMention && (
+        <div
+          ref={backdropRef}
+          aria-hidden="true"
+          className="form-control"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            whiteSpace: 'pre-wrap',
+            wordWrap: 'break-word',
+            overflowWrap: 'break-word',
+            overflow: 'hidden',
+            pointerEvents: 'none',
+            background: 'transparent',
+            borderColor: 'transparent',
+          }}
+        >
+          {renderMentionsPreview(value)}
+        </div>
+      )}
       <TextareaAutosize
         ref={textareaRef}
         minRows={minRows}
         maxRows={maxRows}
         value={value}
         onChange={handleChange}
+        onScroll={(e) => { if (backdropRef.current) backdropRef.current.scrollTop = e.target.scrollTop; }}
         placeholder={placeholder}
         className="form-control"
+        style={hasConfirmedMention ? { position: 'relative', background: 'transparent', color: 'transparent', caretColor: '#000' } : undefined}
       />
       {activeWord && suggestions.length > 0 && (
         <div

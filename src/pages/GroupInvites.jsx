@@ -748,7 +748,7 @@ const handleClick = async (
                     className="rounded-circle me-2"
                     style={{ width: '24px', height: '24px', objectFit: 'cover', verticalAlign: 'middle' }}
                   />
-                  <strong>{mention.mentioning_username}</strong> mentioned you in {mention.comment_id ? 'a comment' : 'a post'} on the GameFeed.
+                  <strong>{mention.mentioning_username}</strong> mentioned you in {mention.comment_id ? 'a comment' : 'a post'} in the GameFeed.
                   <div className="time-ago">{timeAgo(mention.created_at, true)}</div>
                 </div>
                 {isUnread && <span className="unread-dot"></span>}
