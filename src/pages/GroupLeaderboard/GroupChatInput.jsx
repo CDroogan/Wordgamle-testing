@@ -23,7 +23,6 @@ function GroupChatInput({ onSend, gameName, baseURL }) {
           onChange={setText}
           placeholder="Type a message..."
           baseURL={baseURL}
-          showPreview={false}
         />
         <Button className={`${gameName}-btn`} type="submit">
           <FaPaperPlane />

@@ -61,18 +61,20 @@ function MentionTextarea({ value, onChange, placeholder, minRows, maxRows, baseU
 
   // Only switch into the overlay rendering once there's an actual
   // confirmed mention to show - the common case (no mention yet) stays
-  // a perfectly normal, opaque textarea with zero extra risk. Also
-  // gated by showPreview: this trick needs the textarea to be the only
-  // thing sizing its own box - safe in the GameFeed's simple composer,
-  // but unreliable wherever the textarea shares a tight flex row with
-  // another element (Group Chat's Send button), so Chat opts out and
-  // a confirmed mention there just stays plain text until it's posted.
+  // a perfectly normal, opaque textarea with zero extra risk.
   const hasConfirmedMention = showPreview && value.includes(MENTION_MARK);
   const backdropRef = useRef(null);
   const boxClassName = className || 'form-control';
 
   return (
-    <div style={{ position: 'relative', flex: 1 }}>
+    // Bootstrap's InputGroup gives direct .form-control children
+    // `flex: 1 1 auto; width: 1%; min-width: 0` so they share the row
+    // correctly with a button beside them - this wrapper sits one level
+    // deeper than that (so Bootstrap's own rule never reaches it),
+    // which is what broke the overlay the first time it was used inside
+    // Group Chat's input row. Replicating that rule here directly makes
+    // the wrapper behave exactly like a native .form-control would.
+    <div style={{ position: 'relative', flex: '1 1 auto', width: '1%', minWidth: 0 }}>
       {hasConfirmedMention && (
         <div
           ref={backdropRef}
