@@ -3,6 +3,7 @@ import { Button, Form } from 'react-bootstrap';
 import TextareaAutosize from 'react-textarea-autosize';
 import Axios from 'axios';
 import dayjs from 'dayjs';
+import { toast } from 'react-toastify';
 import ReactionBar from './ReactionBar';
 
 // The GameFeed: a global, chronological feed any Gamler can post to and
@@ -55,6 +56,10 @@ function GameFeed({ userId, username, avatar, baseURL }) {
   const handleSubmitPost = async (event) => {
     event.preventDefault();
     if (!postText.trim()) return;
+    if (!userId) {
+      toast.error("Couldn't tell who you are - try logging in again.");
+      return;
+    }
 
     try {
       const res = await Axios.post(`${baseURL}/gamefeed/create-post.php`, {
@@ -64,18 +69,24 @@ function GameFeed({ userId, username, avatar, baseURL }) {
       if (res.data.success) {
         setPostText('');
         fetchFeed();
+      } else {
+        toast.error(res.data.error || 'Something went wrong while posting.');
       }
     } catch (err) {
-      console.error('Failed to post to GameFeed:', err);
+      toast.error(err.response?.data?.error || 'Failed to post - please try again.');
     }
   };
 
   const handleReact = async (postId, emoji) => {
     try {
-      await Axios.post(`${baseURL}/gamefeed/react-post.php`, { post_id: postId, user_id: userId, emoji });
-      fetchFeed();
+      const res = await Axios.post(`${baseURL}/gamefeed/react-post.php`, { post_id: postId, user_id: userId, emoji });
+      if (res.data.success) {
+        fetchFeed();
+      } else {
+        toast.error(res.data.error || 'Something went wrong while reacting.');
+      }
     } catch (err) {
-      console.error('Failed to react:', err);
+      toast.error(err.response?.data?.error || 'Failed to react - please try again.');
     }
   };
 
@@ -92,15 +103,21 @@ function GameFeed({ userId, username, avatar, baseURL }) {
       const res = await Axios.get(`${baseURL}/gamefeed/get-comments.php`, { params: { post_id: postId } });
       if (res.data.success) {
         setExpandedComments((prev) => ({ ...prev, [postId]: res.data.comments }));
+      } else {
+        toast.error(res.data.error || 'Could not load comments.');
       }
     } catch (err) {
-      console.error('Failed to load comments:', err);
+      toast.error(err.response?.data?.error || 'Failed to load comments - please try again.');
     }
   };
 
   const handleAddComment = async (postId) => {
     const text = (commentDrafts[postId] || '').trim();
     if (!text) return;
+    if (!userId) {
+      toast.error("Couldn't tell who you are - try logging in again.");
+      return;
+    }
     try {
       const res = await Axios.post(`${baseURL}/gamefeed/add-comment.php`, { post_id: postId, user_id: userId, text });
       if (res.data.success) {
@@ -110,9 +127,11 @@ function GameFeed({ userId, username, avatar, baseURL }) {
           setExpandedComments((prev) => ({ ...prev, [postId]: commentsRes.data.comments }));
         }
         setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, comment_count: (p.comment_count || 0) + 1 } : p)));
+      } else {
+        toast.error(res.data.error || 'Something went wrong while commenting.');
       }
     } catch (err) {
-      console.error('Failed to add comment:', err);
+      toast.error(err.response?.data?.error || 'Failed to comment - please try again.');
     }
   };
 
