@@ -105,7 +105,13 @@ function MentionTextarea({ value, onChange, placeholder, minRows, maxRows, baseU
   }, [hasConfirmedMention]);
 
   return (
-    <div ref={wrapperRef} style={{ position: 'relative', flex: 1, minWidth: 0 }}>
+    // textAlign: 'left' guards against pages that wrap their whole
+    // layout in a centered-text container (e.g. Group Page's
+    // <Container className="text-center">) - that cascades all the way
+    // down into a plain textarea's own text, and normal typing mostly
+    // hides it, but it's very likely what broke the caret/backdrop
+    // alignment once this box's text started being styled specially.
+    <div ref={wrapperRef} style={{ position: 'relative', flex: 1, minWidth: 0, textAlign: 'left' }}>
       {hasConfirmedMention && backdropBox && (
         <div
           ref={backdropRef}
