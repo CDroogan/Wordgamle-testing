@@ -20,34 +20,38 @@ dayjs.extend(timezone);
 const viewerTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 const formatLocalTime = (utcString) => dayjs.utc(utcString).tz(viewerTimezone).format('MMM D, h:mm A');
 
-// Finds the @mention token (if any) the cursor is currently sitting
-// inside, e.g. typing "...hi @cass" with the cursor at the end returns
-// { start: <index of @>, end: <cursor>, query: "cass" }.
-function findActiveMention(text, cursorPos) {
+// Invisible in every browser/font - see _mentions.php on the backend
+// for why a confirmed mention is wrapped in a pair of these instead of
+// using a visible symbol like "@".
+const MENTION_MARK = '⁠';
+const MENTION_PATTERN = new RegExp(`${MENTION_MARK}([^${MENTION_MARK}]+)${MENTION_MARK}`, 'g');
+
+// Finds the plain word (letters only, no "@" needed) the cursor is
+// currently sitting at the end of, e.g. typing "...hi Cass" with the
+// cursor at the end returns { start, end: cursor, query: "Cass" }.
+function findActiveWord(text, cursorPos) {
   const uptoCursor = text.slice(0, cursorPos);
-  const atIndex = uptoCursor.lastIndexOf('@');
-  if (atIndex === -1) return null;
-  const between = uptoCursor.slice(atIndex + 1);
-  if (/^[A-Za-z0-9_]*$/.test(between)) {
-    return { start: atIndex, end: cursorPos, query: between };
-  }
-  return null;
+  const match = uptoCursor.match(/[A-Za-z'’-]+$/);
+  if (!match) return null;
+  const word = match[0];
+  return { start: cursorPos - word.length, end: cursorPos, query: word };
 }
 
-// Turns any "@username" in a post/comment into a clickable, blue
-// mention - same styling as the other clickable phrases on the
-// homepage.
+// Turns a CONFIRMED mention (one actually picked from the autocomplete,
+// marked with the invisible MENTION_MARK pair) into a clickable, blue
+// span - same styling as the other clickable phrases on the homepage.
+// Plain text that merely happens to match someone's name, but was never
+// picked from the dropdown, is left as ordinary text.
 function renderWithMentions(text, onMentionClick) {
-  const parts = text.split(/(@[A-Za-z0-9_]+)/g);
+  const parts = text.split(MENTION_PATTERN);
   return parts.map((part, i) => {
-    const m = part.match(/^@([A-Za-z0-9_]+)$/);
-    if (m) {
+    if (i % 2 === 1) {
       return (
         <button
           key={i}
           type="button"
           className="home-popup-link"
-          onClick={(e) => { e.stopPropagation(); onMentionClick(m[1]); }}
+          onClick={(e) => { e.stopPropagation(); onMentionClick(part); }}
         >
           {part}
         </button>
@@ -57,50 +61,55 @@ function renderWithMentions(text, onMentionClick) {
   });
 }
 
-// A plain textarea plus an @mention autocomplete dropdown - shared by
-// the post composer and every comment box so both work identically.
+// A plain textarea plus a mention autocomplete dropdown - shared by the
+// post composer and every comment box so both work identically. No "@"
+// or other trigger character - typing any part of a Gamler's name or
+// GamleName surfaces them above; picking one confirms the mention
+// (notifies them, renders blue once posted); ignoring the dropdown and
+// continuing to type leaves it as plain text with no mention at all.
 function MentionTextarea({ value, onChange, placeholder, minRows, maxRows, baseURL }) {
   const textareaRef = useRef(null);
-  const [mention, setMention] = useState(null); // { start, end, query }
+  const [activeWord, setActiveWord] = useState(null); // { start, end, query }
   const [suggestions, setSuggestions] = useState([]);
 
   const handleChange = (e) => {
     const newText = e.target.value;
     const cursorPos = e.target.selectionStart;
     onChange(newText);
-    setMention(findActiveMention(newText, cursorPos));
+    setActiveWord(findActiveWord(newText, cursorPos));
   };
 
   useEffect(() => {
-    if (!mention || mention.query.length === 0) {
+    if (!activeWord || activeWord.query.length < 2) {
       setSuggestions([]);
       return;
     }
     let cancelled = false;
     const timer = setTimeout(async () => {
       try {
-        const res = await Axios.get(`${baseURL}/user/search-users.php`, { params: { q: mention.query } });
+        const res = await Axios.get(`${baseURL}/user/search-users.php`, { params: { q: activeWord.query } });
         if (!cancelled && res.data.success) setSuggestions(res.data.users);
       } catch (err) {
         // Autocomplete failing silently is fine - it's a convenience,
-        // not something that should block typing a normal @ mention.
+        // not something that should block typing a normal word.
       }
     }, 150);
     return () => { cancelled = true; clearTimeout(timer); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mention?.query, baseURL]);
+  }, [activeWord?.query, baseURL]);
 
   const selectMention = (selectedUsername) => {
-    if (!mention) return;
-    const before = value.slice(0, mention.start);
-    const after = value.slice(mention.end);
-    const newText = `${before}@${selectedUsername} ${after}`;
+    if (!activeWord) return;
+    const before = value.slice(0, activeWord.start);
+    const after = value.slice(activeWord.end);
+    const inserted = `${MENTION_MARK}${selectedUsername}${MENTION_MARK} `;
+    const newText = `${before}${inserted}${after}`;
     onChange(newText);
-    setMention(null);
+    setActiveWord(null);
     setSuggestions([]);
     setTimeout(() => {
       if (textareaRef.current) {
-        const pos = before.length + selectedUsername.length + 2;
+        const pos = before.length + inserted.length;
         textareaRef.current.setSelectionRange(pos, pos);
         textareaRef.current.focus();
       }
@@ -118,7 +127,7 @@ function MentionTextarea({ value, onChange, placeholder, minRows, maxRows, baseU
         placeholder={placeholder}
         className="form-control"
       />
-      {mention && suggestions.length > 0 && (
+      {activeWord && suggestions.length > 0 && (
         <div
           style={{
             position: 'absolute',
@@ -130,10 +139,13 @@ function MentionTextarea({ value, onChange, placeholder, minRows, maxRows, baseU
             borderRadius: '8px',
             boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
             zIndex: 20,
-            maxHeight: '160px',
+            maxHeight: '180px',
             overflowY: 'auto',
           }}
         >
+          <div className="text-muted px-2 pt-1" style={{ fontSize: '0.7rem' }}>
+            Tap a name to mention them:
+          </div>
           {suggestions.map((u) => (
             <div
               key={u.id}
@@ -145,7 +157,14 @@ function MentionTextarea({ value, onChange, placeholder, minRows, maxRows, baseU
                 alt=""
                 style={{ width: '20px', height: '20px', borderRadius: '50%', objectFit: 'cover' }}
               />
-              <span>{u.username}</span>
+              <span>
+                <span className="home-popup-link">{u.username}</span>
+                {(u.first_name || u.last_name) && (
+                  <span className="text-muted ms-1" style={{ fontSize: '0.75rem' }}>
+                    ({u.first_name} {u.last_name})
+                  </span>
+                )}
+              </span>
             </div>
           ))}
         </div>
@@ -388,7 +407,7 @@ function GameFeed({ userId, baseURL, focusPostId }) {
             onChange={setPostText}
             minRows={2}
             maxRows={12}
-            placeholder="Share something with other Gamlers... (type @ to mention someone)"
+            placeholder="Share something with other Gamlers... (type a name to mention someone)"
             baseURL={baseURL}
           />
         </div>
@@ -465,21 +484,21 @@ function GameFeed({ userId, baseURL, focusPostId }) {
                   </div>
                 </div>
               ))}
-              <ImagePicker
-                image={commentImages[post.id] || null}
-                onChange={(file) => setCommentImages((prev) => ({ ...prev, [post.id]: file }))}
-              />
               <div className="d-flex gap-2 align-items-end">
                 <MentionTextarea
                   value={commentDrafts[post.id] || ''}
                   onChange={(text) => setCommentDrafts((prev) => ({ ...prev, [post.id]: text }))}
                   minRows={1}
                   maxRows={8}
-                  placeholder="Write a comment... (type @ to mention someone)"
+                  placeholder="Write a comment..."
                   baseURL={baseURL}
                 />
                 <Button size="sm" onClick={() => handleAddComment(post.id)}>Send</Button>
               </div>
+              <ImagePicker
+                image={commentImages[post.id] || null}
+                onChange={(file) => setCommentImages((prev) => ({ ...prev, [post.id]: file }))}
+              />
             </div>
           )}
         </div>
