@@ -107,6 +107,7 @@ function GroupGameChat({ groupId, gameName, createdAt, periodType, userId, highl
             baseURL={baseURL}
             highlightMsgId={highlightMsgId}
             generalChat={generalChat}
+            onMessagesChanged={generalChat ? fetchGeneralMessages : fetchMessages}
           />
         </div>
         </>

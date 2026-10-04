@@ -9,9 +9,9 @@ import EmojiPicker from "emoji-picker-react";
 import axios from "axios";
 import MemberProfile from "../../constant/Models/MemberProfile";
 
-function GroupChatMessagesByDate({ gameName, messages, userId, baseURL, highlightMsgId, generalChat }) {
+function GroupChatMessagesByDate({ gameName, messages, userId, baseURL, highlightMsgId, generalChat, onMessagesChanged }) {
   const [showPickerFor, setShowPickerFor] = useState(null);
-  const [msgReactions, setMsgReactions] = useState({});
+  const [expandedReaction, setExpandedReaction] = useState(null); // `${messageId}-${emoji}`
   const [selectedMember, setSelectedMember] = useState(null);
   const [showProfile, setShowProfile] = useState(false);
 
@@ -80,7 +80,9 @@ function GroupChatMessagesByDate({ gameName, messages, userId, baseURL, highligh
     return date.format("MMM D, YYYY");
   };
 
-  // ✅ Handle emoji reaction
+  // ✅ Handle emoji reaction - each Gamler's own reaction is tracked
+  // separately server-side, so after it saves we just refetch to pick up
+  // everyone's current reactions (including this one).
   const handleEmojiSelect = async (emojiData, messageId) => {
     try {
       const response = await axios.post(`${baseURL}/groups/react-message.php`, {
@@ -89,25 +91,28 @@ function GroupChatMessagesByDate({ gameName, messages, userId, baseURL, highligh
         emoji: emojiData.emoji,
         generalChat
       });
-      setMsgReactions(prev => ({
-        ...prev,
-        [messageId]: emojiData.emoji
-      }));
-      
 
-      // 👇 Optionally show popup or inline confirmation
       if (response.data.success) {
-        //alert(`Reaction ${response.data.action}: ${emojiData.emoji}`);
+        if (onMessagesChanged) onMessagesChanged();
       } else {
         alert("Something went wrong while reacting!");
       }
       setShowPickerFor(null);
-
-      // 🔄 Optional: refresh messages to show updated counts
-      // fetchMessages();
     } catch (error) {
       alert("Failed to send reaction. Please try again.");
     }
+  };
+
+  // Groups a message's individual reactions (one per person) into
+  // per-emoji counts, e.g. [{ emoji: '🔥', count: 2, users: [...] }].
+  const groupReactions = (reactions) => {
+    if (!reactions || reactions.length === 0) return [];
+    const byEmoji = {};
+    reactions.forEach((r) => {
+      if (!byEmoji[r.emoji]) byEmoji[r.emoji] = [];
+      byEmoji[r.emoji].push(r);
+    });
+    return Object.entries(byEmoji).map(([emoji, users]) => ({ emoji, count: users.length, users }));
   };
 
   
@@ -203,30 +208,65 @@ function GroupChatMessagesByDate({ gameName, messages, userId, baseURL, highligh
                       
                       {formattedTime}
                     </div>
-                    {/* 💖 Reaction (bottom-left corner like WhatsApp) */}
-                    
-                    {(msgReactions[msg.id] || msg.emoji) && (
+                    {/* 💖 Reactions (bottom-left corner like WhatsApp) - one
+                        pill per distinct emoji, with a count; tap a pill to
+                        see who left it. */}
+                    {groupReactions(msg.reactions).length > 0 && (
                       <div
                         style={{
                           position: "absolute",
-                          bottom: "-12px",
+                          bottom: "-14px",
                           left: "0px",
-                          background: "#ffffff",
-                          border: "1px solid #ddd",
-                          borderRadius: "50%",
-                          padding: "1px 5px",
-                          fontSize: "0.8rem",
-                          display: "inline-flex",
-                          alignItems: "center",
+                          display: "flex",
                           gap: "3px",
-                          boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
                         }}
                       >
-                        {msgReactions[msg.id] || msg.emoji}
+                        {groupReactions(msg.reactions).map(({ emoji, count, users }) => {
+                          const key = `${msg.id}-${emoji}`;
+                          return (
+                            <div key={key} style={{ position: "relative" }}>
+                              <div
+                                onClick={() => setExpandedReaction(expandedReaction === key ? null : key)}
+                                style={{
+                                  background: "#ffffff",
+                                  border: "1px solid #ddd",
+                                  borderRadius: "10px",
+                                  padding: "1px 5px",
+                                  fontSize: "0.8rem",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "3px",
+                                  boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                                  cursor: "pointer",
+                                }}
+                              >
+                                {emoji}{count > 1 && <span style={{ fontSize: "0.65rem", color: "#555" }}>{count}</span>}
+                              </div>
+                              {expandedReaction === key && (
+                                <div
+                                  style={{
+                                    position: "absolute",
+                                    top: "100%",
+                                    left: 0,
+                                    marginTop: "4px",
+                                    background: "#fff",
+                                    border: "1px solid #ddd",
+                                    borderRadius: "8px",
+                                    padding: "6px 10px",
+                                    fontSize: "0.75rem",
+                                    whiteSpace: "nowrap",
+                                    boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
+                                    zIndex: 10,
+                                  }}
+                                >
+                                  {users.map((u) => u.username).join(", ")}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
-
-                    
                   </div>
                   {/* Add Reaction button and Emoji Picker — only show for others' messages */}
                   {!isMe && (
