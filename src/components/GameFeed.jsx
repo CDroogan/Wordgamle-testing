@@ -3,8 +3,20 @@ import { Button, Form } from 'react-bootstrap';
 import TextareaAutosize from 'react-textarea-autosize';
 import Axios from 'axios';
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
 import { toast } from 'react-toastify';
 import ReactionBar from './ReactionBar';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
+// Posts/comments are stored as a true UTC instant, converted here to
+// whichever timezone this browser is actually in - so the same post
+// shows the correct local time for every Gamler, not just whoever
+// happens to share the server's own clock.
+const viewerTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+const formatLocalTime = (utcString) => dayjs.utc(utcString).tz(viewerTimezone).format('MMM D, h:mm A');
 
 // The GameFeed: a global, chronological feed any Gamler can post to and
 // see, completely separate from Groups. Posting mirrors the same
@@ -166,7 +178,7 @@ function GameFeed({ userId, username, avatar, baseURL }) {
             />
             <div>
               <div className="fw-bold">{post.username}</div>
-              <div className="text-muted" style={{ fontSize: '0.7rem' }}>{dayjs(post.created_at).format('MMM D, h:mm A')}</div>
+              <div className="text-muted" style={{ fontSize: '0.7rem' }}>{formatLocalTime(post.created_at)}</div>
             </div>
           </div>
 
@@ -196,9 +208,18 @@ function GameFeed({ userId, username, avatar, baseURL }) {
           {expandedComments[post.id] && (
             <div className="mt-2 ps-2 border-start">
               {expandedComments[post.id].map((c) => (
-                <div key={c.id} className="mb-2" style={{ whiteSpace: 'pre-wrap' }}>
-                  <span className="fw-bold me-1">{c.username}</span>
-                  <span>{c.text}</span>
+                <div key={c.id} className="d-flex mb-2">
+                  <img
+                    src={c.avatar ? `${baseURL}/user/uploads/${c.avatar}` : `${baseURL}/user/uploads/default_avatar.png`}
+                    alt="avatar"
+                    className="rounded-circle me-2 flex-shrink-0"
+                    style={{ width: '24px', height: '24px', objectFit: 'cover', border: '2px solid #0d6efd' }}
+                  />
+                  <div style={{ whiteSpace: 'pre-wrap' }}>
+                    <span className="fw-bold me-1">{c.username}</span>
+                    <span>{c.text}</span>
+                    <div className="text-muted" style={{ fontSize: '0.65rem' }}>{formatLocalTime(c.created_at)}</div>
+                  </div>
                 </div>
               ))}
               <div className="d-flex gap-2 align-items-end">
