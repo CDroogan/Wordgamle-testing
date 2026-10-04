@@ -12,8 +12,10 @@ import { MENTION_MARK, findActiveWord, renderMentionsPreview } from '../utils/me
 // with no mention at all.
 function MentionTextarea({ value, onChange, placeholder, minRows, maxRows, baseURL, className, showPreview = true }) {
   const textareaRef = useRef(null);
+  const wrapperRef = useRef(null);
   const [activeWord, setActiveWord] = useState(null); // { start, end, query }
   const [suggestions, setSuggestions] = useState([]);
+  const [backdropBox, setBackdropBox] = useState(null); // {top, left, width, height}
 
   const handleChange = (e) => {
     const newText = e.target.value;
@@ -66,23 +68,56 @@ function MentionTextarea({ value, onChange, placeholder, minRows, maxRows, baseU
   const backdropRef = useRef(null);
   const boxClassName = className || 'form-control';
 
+  // Rather than trying to predict how the surrounding layout (a plain
+  // block, a flex row next to a button, a narrower column, etc.) will
+  // size this wrapper - which turned out to differ in ways CSS alone
+  // kept guessing wrong - this measures the real textarea's actual
+  // on-screen box directly and sizes the backdrop to match exactly,
+  // so it's correct regardless of whatever layout it's dropped into.
+  useEffect(() => {
+    if (!hasConfirmedMention) {
+      setBackdropBox(null);
+      return;
+    }
+    const textareaEl = textareaRef.current;
+    const wrapperEl = wrapperRef.current;
+    if (!textareaEl || !wrapperEl) return;
+
+    const updateBox = () => {
+      const taRect = textareaEl.getBoundingClientRect();
+      const wrapRect = wrapperEl.getBoundingClientRect();
+      setBackdropBox({
+        top: taRect.top - wrapRect.top,
+        left: taRect.left - wrapRect.left,
+        width: taRect.width,
+        height: taRect.height,
+      });
+    };
+
+    updateBox();
+    const resizeObserver = new ResizeObserver(updateBox);
+    resizeObserver.observe(textareaEl);
+    window.addEventListener('resize', updateBox);
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', updateBox);
+    };
+  }, [hasConfirmedMention]);
+
   return (
-    // Bootstrap's InputGroup gives direct .form-control children
-    // `flex: 1 1 auto; width: 1%; min-width: 0` so they share the row
-    // correctly with a button beside them - this wrapper sits one level
-    // deeper than that (so Bootstrap's own rule never reaches it),
-    // which is what broke the overlay the first time it was used inside
-    // Group Chat's input row. Replicating that rule here directly makes
-    // the wrapper behave exactly like a native .form-control would.
-    <div style={{ position: 'relative', flex: '1 1 auto', width: '1%', minWidth: 0 }}>
-      {hasConfirmedMention && (
+    <div ref={wrapperRef} style={{ position: 'relative', flex: 1, minWidth: 0 }}>
+      {hasConfirmedMention && backdropBox && (
         <div
           ref={backdropRef}
           aria-hidden="true"
           className={boxClassName}
           style={{
             position: 'absolute',
-            inset: 0,
+            top: backdropBox.top,
+            left: backdropBox.left,
+            width: backdropBox.width,
+            height: backdropBox.height,
+            boxSizing: 'border-box',
             whiteSpace: 'pre-wrap',
             wordWrap: 'break-word',
             overflowWrap: 'break-word',
