@@ -616,7 +616,11 @@ cursor: pointer;
 }
 
 .home-popup-link {
-  color: #0d6efd;
+  /* !important because some containers (e.g. Group Chat's message
+     bubble, which uses Bootstrap's text-dark utility) set their own
+     text color with !important - a plain color rule always loses to
+     that regardless of nesting/specificity, so this has to match. */
+  color: #0d6efd !important;
   cursor: pointer;
   text-decoration: underline;
   background: none;
