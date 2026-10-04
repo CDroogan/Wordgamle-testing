@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Button } from 'react-bootstrap';
 import Axios from 'axios';
 import { toast } from 'react-toastify';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import 'react-toastify/dist/ReactToastify.css';
 import GroupModal from '../constant/Models/GroupModal';
 import moment from 'moment-timezone';
@@ -22,6 +22,7 @@ function Groups() {
     const [userData, setUserData] = useState({});
 
     const navigate = useNavigate();
+    const location = useLocation();
 
     useEffect(() => {
         const fetchGroups = async () => {
@@ -55,6 +56,16 @@ function Groups() {
         setShowCreateForm(false);
         setGroupname('');
     };
+
+    // Lets a link elsewhere in the app (e.g. the homepage's "create
+    // groups") land here with the Create Group popup already open,
+    // instead of making the person find and click the button themselves.
+    useEffect(() => {
+        if (new URLSearchParams(location.search).get('create') === '1') {
+            handleShowCreateForm();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const handleShowCreateForm = () => {
         if (!loginUsername || !loginUserEmail) {

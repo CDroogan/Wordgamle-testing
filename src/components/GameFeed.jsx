@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Button, Form } from 'react-bootstrap';
+import TextareaAutosize from 'react-textarea-autosize';
 import Axios from 'axios';
 import dayjs from 'dayjs';
 import ReactionBar from './ReactionBar';
@@ -13,9 +14,7 @@ function GameFeed({ userId, username, avatar, baseURL }) {
   const [posts, setPosts] = useState([]);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [caption, setCaption] = useState('');
-  const [showPasteBox, setShowPasteBox] = useState(false);
-  const [pastedResult, setPastedResult] = useState('');
+  const [postText, setPostText] = useState('');
   const [expandedComments, setExpandedComments] = useState({}); // postId -> comments[]
   const [commentDrafts, setCommentDrafts] = useState({}); // postId -> text
   const sentinelRef = useRef(null);
@@ -53,25 +52,17 @@ function GameFeed({ userId, username, avatar, baseURL }) {
     return () => observer.disconnect();
   }, [fetchFeed, hasMore, loading, posts]);
 
-  const handlePasteResult = (event) => {
-    event.preventDefault();
-    setPastedResult(event.clipboardData.getData('Text'));
-  };
-
   const handleSubmitPost = async (event) => {
     event.preventDefault();
-    if (!caption.trim() && !pastedResult.trim()) return;
+    if (!postText.trim()) return;
 
     try {
       const res = await Axios.post(`${baseURL}/gamefeed/create-post.php`, {
         user_id: userId,
-        caption: caption.trim(),
-        game_result_text: pastedResult.trim(),
+        content: postText.trim(),
       });
       if (res.data.success) {
-        setCaption('');
-        setPastedResult('');
-        setShowPasteBox(false);
+        setPostText('');
         fetchFeed();
       }
     } catch (err) {
@@ -126,34 +117,19 @@ function GameFeed({ userId, username, avatar, baseURL }) {
   };
 
   return (
-    <div>
-      {/* Post composer */}
+    <div className="text-start">
+      {/* Post composer - a Gamler can type freely, paste a game result
+          (inserted at the cursor, same as any normal paste), or mix both -
+          text before and/or after the pasted result - all in one field. */}
       <Form onSubmit={handleSubmitPost} className="border rounded p-3 mb-4">
-        <Form.Control
-          as="textarea"
-          rows={2}
+        <TextareaAutosize
+          minRows={2}
+          maxRows={12}
+          value={postText}
+          onChange={(e) => setPostText(e.target.value)}
           placeholder="Share something with other Gamlers..."
-          value={caption}
-          onChange={(e) => setCaption(e.target.value)}
-          className="mb-2"
+          className="form-control mb-2"
         />
-        {!showPasteBox ? (
-          <Button variant="outline-primary" size="sm" className="mb-2" onClick={() => setShowPasteBox(true)}>
-            + Attach a game result
-          </Button>
-        ) : (
-          <Form.Group className="mb-2">
-            <Form.Label className="small text-muted">Paste your game result below</Form.Label>
-            <Form.Control
-              as="textarea"
-              rows={4}
-              value={pastedResult}
-              onChange={() => {}}
-              onPaste={handlePasteResult}
-              placeholder="Paste here..."
-            />
-          </Form.Group>
-        )}
         <div className="text-end">
           <Button type="submit" variant="primary">Post</Button>
         </div>
@@ -175,14 +151,9 @@ function GameFeed({ userId, username, avatar, baseURL }) {
             </div>
           </div>
 
-          {post.caption && <div className="mb-2">{post.caption}</div>}
-
-          {post.game_result_text && (
-            <div
-              className="border rounded p-2 mb-2"
-              style={{ whiteSpace: 'pre-wrap', fontSize: '0.85rem', background: '#fafafa' }}
-            >
-              {post.game_result_text}
+          {post.content && (
+            <div className="mb-2" style={{ whiteSpace: 'pre-wrap' }}>
+              {post.content}
             </div>
           )}
 
@@ -206,22 +177,22 @@ function GameFeed({ userId, username, avatar, baseURL }) {
           {expandedComments[post.id] && (
             <div className="mt-2 ps-2 border-start">
               {expandedComments[post.id].map((c) => (
-                <div key={c.id} className="mb-2">
+                <div key={c.id} className="mb-2" style={{ whiteSpace: 'pre-wrap' }}>
                   <span className="fw-bold me-1">{c.username}</span>
                   <span>{c.text}</span>
                 </div>
               ))}
-              <Form.Group className="d-flex gap-2">
-                <Form.Control
-                  size="sm"
-                  type="text"
+              <div className="d-flex gap-2 align-items-end">
+                <TextareaAutosize
+                  minRows={1}
+                  maxRows={8}
                   placeholder="Write a comment..."
                   value={commentDrafts[post.id] || ''}
                   onChange={(e) => setCommentDrafts((prev) => ({ ...prev, [post.id]: e.target.value }))}
-                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddComment(post.id); } }}
+                  className="form-control"
                 />
                 <Button size="sm" onClick={() => handleAddComment(post.id)}>Send</Button>
-              </Form.Group>
+              </div>
             </div>
           )}
         </div>

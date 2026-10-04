@@ -259,7 +259,7 @@ function Home() {
                                     <p className="text-center mb-3">
                                         <img src={WordGamleLogo} alt="WordGAMLE" style={{ maxWidth: '220px' }} />
                                     </p>
-                                    <p className="text-center">Your one-stop-shop for all things Word Games.</p>
+                                    <p className="text-center">Your one-stop-shop for<br />all things Word Games.</p>
 
                                     <p className="text-center">
                                         <button type="button" className="home-popup-link" onClick={() => setActiveHomePopup('shareChat')}>Share and Chat</button>
@@ -392,7 +392,7 @@ function Home() {
                                     <p className="text-center mb-3">
                                         <img src={WordGamleLogo} alt="WordGAMLE" style={{ maxWidth: '220px' }} />
                                     </p>
-                                    <h5 className="text-center fw-bold">Your one-stop-shop for all things Word Games.</h5>
+                                    <h5 className="text-center fw-bold">Your one-stop-shop for<br />all things Word Games.</h5>
                                     <p className="text-center text-muted">Click on each game button to see how to enter and store your word game results.</p>
 
                                     <div className="game-select-row" ref={dragScrollRef} {...dragScrollHandlers}>
@@ -406,7 +406,7 @@ function Home() {
                                     <h5 className="text-center fw-bold mt-4">Ready to compete?</h5>
                                     <p className="text-center">
                                         <button type="button" className="home-popup-link" onClick={inviteFriends}>Invite friends</button>
-                                        {' '}and <Link to="/groups" className="home-popup-link">create groups</Link> for Leaderboards and chatting!
+                                        {' '}and <Link to="/groups?create=1" className="home-popup-link">create groups</Link> for Leaderboards and chatting!
                                     </p>
 
                                     <h5 className="text-center fw-bold mt-4 mb-3">Share with other Gamlers?</h5>
