@@ -21,6 +21,47 @@ dayjs.extend(timezone);
 const viewerTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 const formatLocalTime = (utcString) => dayjs.utc(utcString).tz(viewerTimezone).format('MMM D, h:mm A');
 
+// Shrinks a photo on the Gamler's own device before it ever uploads -
+// a straight-from-the-phone photo can be 4000x3000+ and several MB,
+// which is far more than a feed thumbnail needs. Animated GIFs are
+// left untouched (a canvas can only capture one frame, which would
+// kill the animation); anything already small enough is also left as-
+// is. Falls back to the original file if anything about this fails,
+// so a photo can never fail to post just because compression didn't
+// work on a particular device/browser.
+async function compressImage(file, maxDimension = 1600, quality = 0.8) {
+  if (!file || !file.type.startsWith('image/') || file.type === 'image/gif') {
+    return file;
+  }
+  try {
+    const bitmap = await createImageBitmap(file);
+    let { width, height } = bitmap;
+
+    if (width <= maxDimension && height <= maxDimension) {
+      bitmap.close?.();
+      return file;
+    }
+
+    const scale = maxDimension / Math.max(width, height);
+    width = Math.round(width * scale);
+    height = Math.round(height * scale);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    canvas.getContext('2d').drawImage(bitmap, 0, 0, width, height);
+    bitmap.close?.();
+
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
+    if (!blob) return file;
+
+    const newName = file.name.replace(/\.[^.]+$/, '') + '.jpg';
+    return new File([blob], newName, { type: 'image/jpeg' });
+  } catch (err) {
+    return file;
+  }
+}
+
 // A small "add a photo" control: a button that opens the file picker,
 // and once a file is chosen, a thumbnail preview with a way to remove
 // it before posting.
@@ -32,6 +73,16 @@ function ImagePicker({ image, onChange }) {
     return () => { if (previewUrl) URL.revokeObjectURL(previewUrl); };
   }, [previewUrl]);
 
+  const handleFileSelected = async (e) => {
+    const file = e.target.files?.[0] || null;
+    if (!file) {
+      onChange(null);
+      return;
+    }
+    const compressed = await compressImage(file);
+    onChange(compressed);
+  };
+
   return (
     <div className="d-flex align-items-center gap-2 mb-2">
       <input
@@ -39,7 +90,7 @@ function ImagePicker({ image, onChange }) {
         type="file"
         accept="image/*"
         style={{ display: 'none' }}
-        onChange={(e) => onChange(e.target.files?.[0] || null)}
+        onChange={handleFileSelected}
       />
       <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => inputRef.current?.click()}>
         <FaImage className="me-1" /> Add photo
