@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { InputGroup, Form, Button } from "react-bootstrap";
 import { FaPaperPlane } from "react-icons/fa";
-import TextareaAutosize from "react-textarea-autosize";
+import MentionTextarea from "../../components/MentionTextarea";
 
-function GroupChatInput({ onSend, gameName }) {
+function GroupChatInput({ onSend, gameName, baseURL }) {
   const [text, setText] = useState("");
 
   const handleSubmit = (e) => {
@@ -16,13 +16,13 @@ function GroupChatInput({ onSend, gameName }) {
   return (
     <Form onSubmit={handleSubmit}>
       <InputGroup>
-        <TextareaAutosize
+        <MentionTextarea
           minRows={1}
           maxRows={4}
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={setText}
           placeholder="Type a message..."
-          className="form-control"
+          baseURL={baseURL}
         />
         <Button className={`${gameName}-btn`} type="submit">
           <FaPaperPlane />

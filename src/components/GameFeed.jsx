@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Button, Form } from 'react-bootstrap';
-import TextareaAutosize from 'react-textarea-autosize';
 import Axios from 'axios';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
@@ -9,6 +8,8 @@ import { toast } from 'react-toastify';
 import { FaImage, FaTimes } from 'react-icons/fa';
 import ReactionBar from './ReactionBar';
 import MemberProfile from '../constant/Models/MemberProfile';
+import MentionTextarea from './MentionTextarea';
+import { renderWithMentions } from '../utils/mentions';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -19,201 +20,6 @@ dayjs.extend(timezone);
 // happens to share the server's own clock.
 const viewerTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 const formatLocalTime = (utcString) => dayjs.utc(utcString).tz(viewerTimezone).format('MMM D, h:mm A');
-
-// Invisible in every browser/font - see _mentions.php on the backend
-// for why a confirmed mention is wrapped in a pair of these instead of
-// using a visible symbol like "@".
-const MENTION_MARK = '⁠';
-const MENTION_PATTERN = new RegExp(`${MENTION_MARK}([^${MENTION_MARK}]+)${MENTION_MARK}`, 'g');
-
-// Finds the plain word (letters only, no "@" needed) the cursor is
-// currently sitting at the end of, e.g. typing "...hi Cass" with the
-// cursor at the end returns { start, end: cursor, query: "Cass" }.
-function findActiveWord(text, cursorPos) {
-  const uptoCursor = text.slice(0, cursorPos);
-  const match = uptoCursor.match(/[A-Za-z'’-]+$/);
-  if (!match) return null;
-  const word = match[0];
-  return { start: cursorPos - word.length, end: cursorPos, query: word };
-}
-
-// Turns a CONFIRMED mention (one actually picked from the autocomplete,
-// marked with the invisible MENTION_MARK pair) into a clickable, blue
-// span - same styling as the other clickable phrases on the homepage.
-// Plain text that merely happens to match someone's name, but was never
-// picked from the dropdown, is left as ordinary text.
-function renderWithMentions(text, onMentionClick) {
-  const parts = text.split(MENTION_PATTERN);
-  return parts.map((part, i) => {
-    if (i % 2 === 1) {
-      return (
-        <button
-          key={i}
-          type="button"
-          className="home-popup-link"
-          onClick={(e) => { e.stopPropagation(); onMentionClick(part); }}
-        >
-          {part}
-        </button>
-      );
-    }
-    return part;
-  });
-}
-
-// Non-interactive version of the same rendering, used for the
-// "backdrop" that shows a confirmed mention in blue while still
-// composing - a static span, not a live-tracked cursor position, so
-// it doesn't carry the fragility of trying to highlight text that's
-// still actively being typed.
-function renderMentionsPreview(text) {
-  const parts = text.split(MENTION_PATTERN);
-  return parts.map((part, i) => (
-    i % 2 === 1
-      ? <span key={i} style={{ color: '#0d6efd', textDecoration: 'underline' }}>{part}</span>
-      : <React.Fragment key={i}>{part}</React.Fragment>
-  ));
-}
-
-// A plain textarea plus a mention autocomplete dropdown - shared by the
-// post composer and every comment box so both work identically. No "@"
-// or other trigger character - typing any part of a Gamler's name or
-// GamleName surfaces them above; picking one confirms the mention
-// (notifies them, renders blue once posted); ignoring the dropdown and
-// continuing to type leaves it as plain text with no mention at all.
-function MentionTextarea({ value, onChange, placeholder, minRows, maxRows, baseURL }) {
-  const textareaRef = useRef(null);
-  const [activeWord, setActiveWord] = useState(null); // { start, end, query }
-  const [suggestions, setSuggestions] = useState([]);
-
-  const handleChange = (e) => {
-    const newText = e.target.value;
-    const cursorPos = e.target.selectionStart;
-    onChange(newText);
-    setActiveWord(findActiveWord(newText, cursorPos));
-  };
-
-  useEffect(() => {
-    if (!activeWord || activeWord.query.length < 2) {
-      setSuggestions([]);
-      return;
-    }
-    let cancelled = false;
-    const timer = setTimeout(async () => {
-      try {
-        const res = await Axios.get(`${baseURL}/user/search-users.php`, { params: { q: activeWord.query } });
-        if (!cancelled && res.data.success) setSuggestions(res.data.users);
-      } catch (err) {
-        // Autocomplete failing silently is fine - it's a convenience,
-        // not something that should block typing a normal word.
-      }
-    }, 150);
-    return () => { cancelled = true; clearTimeout(timer); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeWord?.query, baseURL]);
-
-  const selectMention = (selectedUsername) => {
-    if (!activeWord) return;
-    const before = value.slice(0, activeWord.start);
-    const after = value.slice(activeWord.end);
-    const inserted = `${MENTION_MARK}${selectedUsername}${MENTION_MARK} `;
-    const newText = `${before}${inserted}${after}`;
-    onChange(newText);
-    setActiveWord(null);
-    setSuggestions([]);
-    setTimeout(() => {
-      if (textareaRef.current) {
-        const pos = before.length + inserted.length;
-        textareaRef.current.setSelectionRange(pos, pos);
-        textareaRef.current.focus();
-      }
-    }, 0);
-  };
-
-  // Only switch into the overlay rendering once there's an actual
-  // confirmed mention to show - the common case (no mention yet) stays
-  // a perfectly normal, opaque textarea with zero extra risk.
-  const hasConfirmedMention = value.includes(MENTION_MARK);
-  const backdropRef = useRef(null);
-
-  return (
-    <div style={{ position: 'relative' }}>
-      {hasConfirmedMention && (
-        <div
-          ref={backdropRef}
-          aria-hidden="true"
-          className="form-control"
-          style={{
-            position: 'absolute',
-            inset: 0,
-            whiteSpace: 'pre-wrap',
-            wordWrap: 'break-word',
-            overflowWrap: 'break-word',
-            overflow: 'hidden',
-            pointerEvents: 'none',
-            background: 'transparent',
-            borderColor: 'transparent',
-          }}
-        >
-          {renderMentionsPreview(value)}
-        </div>
-      )}
-      <TextareaAutosize
-        ref={textareaRef}
-        minRows={minRows}
-        maxRows={maxRows}
-        value={value}
-        onChange={handleChange}
-        onScroll={(e) => { if (backdropRef.current) backdropRef.current.scrollTop = e.target.scrollTop; }}
-        placeholder={placeholder}
-        className="form-control"
-        style={hasConfirmedMention ? { position: 'relative', background: 'transparent', color: 'transparent', caretColor: '#000' } : undefined}
-      />
-      {activeWord && suggestions.length > 0 && (
-        <div
-          style={{
-            position: 'absolute',
-            bottom: '100%',
-            left: 0,
-            right: 0,
-            background: '#fff',
-            border: '1px solid #ddd',
-            borderRadius: '8px',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
-            zIndex: 20,
-            maxHeight: '180px',
-            overflowY: 'auto',
-          }}
-        >
-          <div className="text-muted px-2 pt-1" style={{ fontSize: '0.7rem' }}>
-            Tap a name to mention them:
-          </div>
-          {suggestions.map((u) => (
-            <div
-              key={u.id}
-              onClick={() => selectMention(u.username)}
-              style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px', cursor: 'pointer' }}
-            >
-              <img
-                src={u.avatar ? `${baseURL}/user/uploads/${u.avatar}` : `${baseURL}/user/uploads/default_avatar.png`}
-                alt=""
-                style={{ width: '20px', height: '20px', borderRadius: '50%', objectFit: 'cover' }}
-              />
-              <span>
-                <span className="home-popup-link">{u.username}</span>
-                {(u.first_name || u.last_name) && (
-                  <span className="text-muted ms-1" style={{ fontSize: '0.75rem' }}>
-                    ({u.first_name} {u.last_name})
-                  </span>
-                )}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 // A small "add a photo" control: a button that opens the file picker,
 // and once a file is chosen, a thumbnail preview with a way to remove

@@ -93,7 +93,7 @@ function GroupGameChat({ groupId, gameName, createdAt, periodType, userId, highl
         <>
         {/* Input box - kept above the scrollable message list so it's
             always visible without scrolling down to find it. */}
-        <GroupChatInput onSend={handleSend} gameName={gameName} />
+        <GroupChatInput onSend={handleSend} gameName={gameName} baseURL={baseURL} />
 
         <div
           ref={chatBoxRef}

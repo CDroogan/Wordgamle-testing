@@ -6,8 +6,10 @@ import timezone from "dayjs/plugin/timezone";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 import axios from "axios";
+import { toast } from "react-toastify";
 import MemberProfile from "../../constant/Models/MemberProfile";
 import ReactionBar from "../../components/ReactionBar";
+import { renderWithMentions } from "../../utils/mentions";
 
 function GroupChatMessagesByDate({ gameName, messages, userId, baseURL, highlightMsgId, generalChat, onMessagesChanged }) {
   const [selectedMember, setSelectedMember] = useState(null);
@@ -21,6 +23,20 @@ function GroupChatMessagesByDate({ gameName, messages, userId, baseURL, highligh
       last_name: msg.last_name,
     });
     setShowProfile(true);
+  };
+
+  const handleMentionClick = async (mentionedUsername) => {
+    try {
+      const res = await axios.get(`${baseURL}/user/get-user-by-username.php`, { params: { username: mentionedUsername } });
+      if (res.data.success) {
+        setSelectedMember(res.data.user);
+        setShowProfile(true);
+      } else {
+        toast.error(res.data.error || "Gamler not found.");
+      }
+    } catch (err) {
+      toast.error("Could not load that profile.");
+    }
   };
 
   // Highlight specific message by ID
@@ -178,7 +194,7 @@ function GroupChatMessagesByDate({ gameName, messages, userId, baseURL, highligh
                       textAlign: "left",
                     }}
                   >
-                    <div style={{ paddingRight: "40px", marginBottom: "5px"}}>{msg.message}</div>
+                    <div style={{ paddingRight: "40px", marginBottom: "5px"}}>{renderWithMentions(msg.message, handleMentionClick)}</div>
                     <div
                       style={{
                         position: "absolute",
