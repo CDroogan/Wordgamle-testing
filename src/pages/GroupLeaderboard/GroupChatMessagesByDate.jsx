@@ -6,6 +6,7 @@ import timezone from "dayjs/plugin/timezone";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 import EmojiPicker from "emoji-picker-react";
+import { FaRegSmile } from "react-icons/fa";
 import axios from "axios";
 import MemberProfile from "../../constant/Models/MemberProfile";
 
@@ -277,7 +278,7 @@ function GroupChatMessagesByDate({ gameName, messages, userId, baseURL, highligh
                           setShowPickerFor(showPickerFor === msg.id ? null : msg.id)
                         }
                       >
-                        😊
+                        <FaRegSmile size={16} />
                       </button>
                       {showPickerFor === msg.id && (
                         <div
