@@ -155,33 +155,29 @@ function GroupChatMessagesByDate({ gameName, messages, userId, baseURL, highligh
                 id={`msg-${msg.id}`} // for highlight
                 className="d-flex flex-column mb-3 align-items-start"
               >
-                {/* Username */}
+                {/* Avatar + Username on one row, same layout as the GameFeed */}
                 <div
-                  className="small fw-bold mb-1 ms-1 text-primary"
-                  onClick={() => handleShowProfile(msg)}
+                  className="d-flex align-items-center mb-1"
                   style={{ cursor: "pointer" }}
+                  onClick={() => handleShowProfile(msg)}
                 >
-                  {msg.username || `User ${msg.user_id}`}
+                  <img
+                    src={msg.avatar ? `${baseURL}/user/uploads/${msg.avatar}` : `${baseURL}/user/uploads/default_avatar.png`}
+                    alt="avatar"
+                    className="rounded-circle me-2"
+                    width="24"
+                    height="24"
+                    onError={(e) => { e.target.onerror = null; e.target.src = `${baseURL}/user/uploads/default_avatar.png`; }}
+                    style={{ objectFit: "cover", border: "2px solid #0d6efd" }}
+                  />
+                  <span className="small fw-bold text-primary">
+                    {msg.username || `User ${msg.user_id}`}
+                  </span>
                 </div>
 
                 {/* Message row */}
 
                 <div className={`d-flex align-items-end`} style={{ position: "relative", width: "100%" }}>
-                  {/* Avatar + Reactions */}
-                  <div style={{ position: "relative" }}>
-                    <img
-                      src={msg.avatar ? `${baseURL}/user/uploads/${msg.avatar}` : "https://via.placeholder.com/30"}
-                      alt="avatar"
-                      className="rounded-circle me-2"
-                      width="30"
-                      height="30"
-                      onError={(e) => (e.target.style.display = "none")}
-                      onClick={() => handleShowProfile(msg)}
-                      style={{ cursor: "pointer", border: "2px solid #0d6efd" }}
-                    />
-
-                  </div>
-
                   {/* Message bubble */}
                   <div
                     className="p-2 rounded-3 bg-white border text-dark"
