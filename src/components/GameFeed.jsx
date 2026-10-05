@@ -217,13 +217,18 @@ function GameFeed({ userId, baseURL, focusPostId }) {
   const [showProfile, setShowProfile] = useState(false);
   const sentinelRef = useRef(null);
 
-  const fetchFeed = useCallback(async (beforeId) => {
+  // Spoiler Alert makes the feed's order viewer-specific (a tagged post
+  // can sit later in one Gamler's feed than in another's), so the
+  // backend sorts and pages the whole thing itself - this just asks for
+  // "the next 10 after however many I've already got," by position
+  // (offset), not by a post id cursor.
+  const fetchFeed = useCallback(async (offset = 0) => {
     setLoading(true);
     try {
-      const params = { ...buildViewerParams(userId), ...(beforeId ? { before_id: beforeId } : {}) };
+      const params = { ...buildViewerParams(userId), offset };
       const res = await Axios.get(`${baseURL}/gamefeed/get-feed.php`, { params });
       if (res.data.success) {
-        setPosts((prev) => (beforeId ? [...prev, ...res.data.posts] : res.data.posts));
+        setPosts((prev) => (offset > 0 ? [...prev, ...res.data.posts] : res.data.posts));
         setHasMore(res.data.has_more);
       }
     } catch (err) {
@@ -267,7 +272,7 @@ function GameFeed({ userId, baseURL, focusPostId }) {
     if (!sentinelRef.current) return;
     const observer = new IntersectionObserver((entries) => {
       if (entries[0].isIntersecting && hasMore && !loading && posts.length > 0) {
-        fetchFeed(posts[posts.length - 1].id);
+        fetchFeed(posts.length);
       }
     });
     observer.observe(sentinelRef.current);
