@@ -5,6 +5,7 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 import { toast } from 'react-toastify';
+import { useNavigate } from 'react-router-dom';
 import { FaImage, FaTimes } from 'react-icons/fa';
 import ReactionBar from './ReactionBar';
 import MemberProfile from '../constant/Models/MemberProfile';
@@ -12,6 +13,7 @@ import MentionTextarea from './MentionTextarea';
 import SpoilerAlertPicker from './SpoilerAlertPicker';
 import { renderWithMentions } from '../utils/mentions';
 import { GAME_DISPLAY_NAMES, GAME_PLAY_URLS, getTaggedPeriodGraceEnd, describeSpoilerGameReferences } from '../utils/gracePeriod';
+import { markPastePending } from '../utils/pendingPaste';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -134,9 +136,10 @@ function SpoilerBadge({ item, size = 32, top = '1rem' }) {
 
 // The teaser shown instead of a locked post/comment's real content - the
 // tagged game name(s) link straight out to that game's real site (same
-// destination as that game's own "Play" button), and the author's name
-// opens their profile, both styled like the existing mention links.
-function SpoilerPlaceholderBody({ item, onAuthorClick }) {
+// destination, and same "land back on the Enter Result box" behavior,
+// as that game's own "Play" button), and the author's name opens their
+// profile, both styled like the existing mention links.
+function SpoilerPlaceholderBody({ item, navigate, onAuthorClick }) {
   const tags = item.spoiler_games;
   const parts = [];
   tags.forEach((t, idx) => {
@@ -149,7 +152,15 @@ function SpoilerPlaceholderBody({ item, onAuthorClick }) {
         key={`${t.game}-${t.period || ''}`}
         className="home-popup-link"
         style={{ cursor: 'pointer' }}
-        onClick={() => window.open(GAME_PLAY_URLS[t.game], '_blank')}
+        onClick={() => {
+          // Same trick that game's own "Play" button uses: flag that a
+          // paste is pending before that game's page mounts, so it comes
+          // up already showing its Enter Result box, exactly as if the
+          // Gamler had clicked Play from that page directly.
+          markPastePending(t.game);
+          window.open(GAME_PLAY_URLS[t.game], '_blank');
+          navigate(`/${t.game}`);
+        }}
       >
         {label}
       </span>
@@ -264,6 +275,7 @@ function ImagePicker({ image, onChange }) {
 // stored and shown verbatim (it already contains the real score-grid
 // characters), not re-parsed into a custom grid component.
 function GameFeed({ userId, baseURL, focusPostId }) {
+  const navigate = useNavigate();
   const [posts, setPosts] = useState([]);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -499,7 +511,7 @@ function GameFeed({ userId, baseURL, focusPostId }) {
 
           {isLocked ? (
             <div className="mb-2">
-              <SpoilerPlaceholderBody item={post} onAuthorClick={handleMentionClick} />
+              <SpoilerPlaceholderBody item={post} navigate={navigate} onAuthorClick={handleMentionClick} />
             </div>
           ) : (
             <>
@@ -552,7 +564,7 @@ function GameFeed({ userId, baseURL, focusPostId }) {
                   <div style={{ whiteSpace: 'pre-wrap' }}>
                     <span className="fw-bold me-1" style={{ cursor: 'pointer' }} onClick={() => handleMentionClick(c.username)}>{c.username}</span>
                     {isCommentLocked ? (
-                      <SpoilerPlaceholderBody item={c} onAuthorClick={handleMentionClick} />
+                      <SpoilerPlaceholderBody item={c} navigate={navigate} onAuthorClick={handleMentionClick} />
                     ) : (
                       <>
                         <span>{renderWithMentions(c.text, handleMentionClick)}</span>
