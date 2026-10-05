@@ -5,11 +5,14 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 import { toast } from 'react-toastify';
+import { useNavigate } from 'react-router-dom';
 import { FaImage, FaTimes } from 'react-icons/fa';
 import ReactionBar from './ReactionBar';
 import MemberProfile from '../constant/Models/MemberProfile';
 import MentionTextarea from './MentionTextarea';
+import SpoilerAlertPicker from './SpoilerAlertPicker';
 import { renderWithMentions } from '../utils/mentions';
+import { GAME_DISPLAY_NAMES, getTaggedPeriodGraceEnd } from '../utils/gracePeriod';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -20,6 +23,87 @@ dayjs.extend(timezone);
 // happens to share the server's own clock.
 const viewerTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 const formatLocalTime = (utcString) => dayjs.utc(utcString).tz(viewerTimezone).format('MMM D, h:mm A');
+
+// Sent alongside every feed/post/comment read so the backend can gate
+// Spoiler Alert posts against this viewer's own play history and own
+// local clock - the same "a request carries its own timeZone" approach
+// already used by every score submission.
+function buildViewerParams(userId) {
+  return {
+    viewer_id: userId || 0,
+    viewer_tz: viewerTimezone,
+    viewer_now: dayjs.utc().format('YYYY-MM-DD HH:mm:ss'),
+  };
+}
+
+// A locked Spoiler Alert post/comment shows its original post time (the
+// only timestamp there is to show before a viewer has unlocked it). Once
+// unlocked, the displayed time instead reflects why it unlocked: the
+// later of the original post time and this viewer's own moment of
+// playing (so a viewer who plays after the post was made sees it land in
+// their feed as of when they actually unlocked it, not backdated to
+// before they could have seen it) - or, for a viewer who never plays, the
+// moment the last tagged game's grace window closed for everyone.
+function computeSpoilerDisplayTime(item) {
+  if (!Array.isArray(item.spoiler_games) || item.spoiler_games.length === 0 || item.is_locked) {
+    return formatLocalTime(item.created_at);
+  }
+  if (item.viewer_unlock_time) {
+    const postMs = dayjs.utc(item.created_at).valueOf();
+    const unlockMs = dayjs.utc(item.viewer_unlock_time).valueOf();
+    return formatLocalTime(unlockMs > postMs ? item.viewer_unlock_time : item.created_at);
+  }
+  const graceEndTimes = item.spoiler_games.map((t) => getTaggedPeriodGraceEnd(t.game, t.date, t.period).getTime());
+  return dayjs(Math.max(...graceEndTimes)).format('MMM D, h:mm A');
+}
+
+// Purple circled "S" badge marking a Spoiler Alert post/comment - shown
+// in the same spot whether the viewer is looking at the real content or
+// still at its Placeholder Post.
+function SpoilerBadge() {
+  return (
+    <span
+      title="Spoiler Alert"
+      style={{ position: 'absolute', top: '6px', right: '10px', color: '#6f42c1', fontSize: '1.4rem', fontWeight: 'bold', lineHeight: 1 }}
+    >
+      Ⓢ
+    </span>
+  );
+}
+
+// The teaser shown instead of a locked post/comment's real content - the
+// tagged game name(s) and the author's name are individually clickable,
+// styled like the existing mention links.
+function SpoilerPlaceholderBody({ item, navigate, onAuthorClick }) {
+  const tags = item.spoiler_games;
+  const parts = [];
+  tags.forEach((t, idx) => {
+    if (idx > 0) {
+      parts.push(<span key={`sep-${idx}`}>{idx === tags.length - 1 ? ' and ' : ', '}</span>);
+    }
+    const label = t.game === 'phrazle' ? `${t.period === 'AM' ? 'AM' : 'PM'} Phrazle` : (GAME_DISPLAY_NAMES[t.game] || t.game);
+    parts.push(
+      <span
+        key={`${t.game}-${t.period || ''}`}
+        className="home-popup-link"
+        style={{ cursor: 'pointer' }}
+        onClick={() => navigate(`/${t.game}`)}
+      >
+        {label}
+      </span>
+    );
+  });
+
+  return (
+    <div className="fst-italic">
+      Play {parts} to see what{' '}
+      <span className="home-popup-link" style={{ cursor: 'pointer' }} onClick={() => onAuthorClick(item.username)}>
+        {item.username}
+      </span>{' '}
+      had to say about today's game!
+    </div>
+  );
+}
 
 // Shrinks a photo on the Gamler's own device before it ever uploads -
 // a straight-from-the-phone photo can be 4000x3000+ and several MB,
@@ -118,14 +202,17 @@ function ImagePicker({ image, onChange }) {
 // stored and shown verbatim (it already contains the real score-grid
 // characters), not re-parsed into a custom grid component.
 function GameFeed({ userId, baseURL, focusPostId }) {
+  const navigate = useNavigate();
   const [posts, setPosts] = useState([]);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
   const [postText, setPostText] = useState('');
   const [postImage, setPostImage] = useState(null);
+  const [postSpoilerGames, setPostSpoilerGames] = useState([]);
   const [expandedComments, setExpandedComments] = useState({}); // postId -> comments[]
   const [commentDrafts, setCommentDrafts] = useState({}); // postId -> text
   const [commentImages, setCommentImages] = useState({}); // postId -> File
+  const [commentSpoilerGames, setCommentSpoilerGames] = useState({}); // postId -> tags[]
   const [selectedMember, setSelectedMember] = useState(null);
   const [showProfile, setShowProfile] = useState(false);
   const sentinelRef = useRef(null);
@@ -133,7 +220,7 @@ function GameFeed({ userId, baseURL, focusPostId }) {
   const fetchFeed = useCallback(async (beforeId) => {
     setLoading(true);
     try {
-      const params = beforeId ? { before_id: beforeId } : {};
+      const params = { ...buildViewerParams(userId), ...(beforeId ? { before_id: beforeId } : {}) };
       const res = await Axios.get(`${baseURL}/gamefeed/get-feed.php`, { params });
       if (res.data.success) {
         setPosts((prev) => (beforeId ? [...prev, ...res.data.posts] : res.data.posts));
@@ -144,7 +231,7 @@ function GameFeed({ userId, baseURL, focusPostId }) {
     } finally {
       setLoading(false);
     }
-  }, [baseURL]);
+  }, [baseURL, userId]);
 
   useEffect(() => {
     fetchFeed();
@@ -157,7 +244,7 @@ function GameFeed({ userId, baseURL, focusPostId }) {
     if (!focusPostId) return;
     (async () => {
       try {
-        const res = await Axios.get(`${baseURL}/gamefeed/get-post.php`, { params: { post_id: focusPostId } });
+        const res = await Axios.get(`${baseURL}/gamefeed/get-post.php`, { params: { post_id: focusPostId, ...buildViewerParams(userId) } });
         if (res.data.success) {
           const post = res.data.post;
           setPosts((prev) => (prev.some((p) => p.id === post.id) ? prev : [post, ...prev]));
@@ -172,7 +259,7 @@ function GameFeed({ userId, baseURL, focusPostId }) {
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [focusPostId, baseURL]);
+  }, [focusPostId, baseURL, userId]);
 
   // Infinite scroll: load the next page once the sentinel at the bottom
   // of the list comes into view.
@@ -214,11 +301,13 @@ function GameFeed({ userId, baseURL, focusPostId }) {
       formData.append('user_id', userId);
       formData.append('content', postText.trim());
       if (postImage) formData.append('image', postImage);
+      if (postSpoilerGames.length > 0) formData.append('spoiler_games', JSON.stringify(postSpoilerGames));
 
       const res = await Axios.post(`${baseURL}/gamefeed/create-post.php`, formData);
       if (res.data.success) {
         setPostText('');
         setPostImage(null);
+        setPostSpoilerGames([]);
         fetchFeed();
       } else {
         toast.error(res.data.error || 'Something went wrong while posting.');
@@ -251,7 +340,7 @@ function GameFeed({ userId, baseURL, focusPostId }) {
       return;
     }
     try {
-      const res = await Axios.get(`${baseURL}/gamefeed/get-comments.php`, { params: { post_id: postId } });
+      const res = await Axios.get(`${baseURL}/gamefeed/get-comments.php`, { params: { post_id: postId, ...buildViewerParams(userId) } });
       if (res.data.success) {
         setExpandedComments((prev) => ({ ...prev, [postId]: res.data.comments }));
       } else {
@@ -276,12 +365,15 @@ function GameFeed({ userId, baseURL, focusPostId }) {
       formData.append('user_id', userId);
       formData.append('text', text);
       if (image) formData.append('image', image);
+      const spoilerTags = commentSpoilerGames[postId] || [];
+      if (spoilerTags.length > 0) formData.append('spoiler_games', JSON.stringify(spoilerTags));
 
       const res = await Axios.post(`${baseURL}/gamefeed/add-comment.php`, formData);
       if (res.data.success) {
         setCommentDrafts((prev) => ({ ...prev, [postId]: '' }));
         setCommentImages((prev) => ({ ...prev, [postId]: null }));
-        const commentsRes = await Axios.get(`${baseURL}/gamefeed/get-comments.php`, { params: { post_id: postId } });
+        setCommentSpoilerGames((prev) => ({ ...prev, [postId]: [] }));
+        const commentsRes = await Axios.get(`${baseURL}/gamefeed/get-comments.php`, { params: { post_id: postId, ...buildViewerParams(userId) } });
         if (commentsRes.data.success) {
           setExpandedComments((prev) => ({ ...prev, [postId]: commentsRes.data.comments }));
         }
@@ -310,15 +402,22 @@ function GameFeed({ userId, baseURL, focusPostId }) {
             baseURL={baseURL}
           />
         </div>
-        <ImagePicker image={postImage} onChange={setPostImage} />
+        <div className="d-flex align-items-start gap-2 mb-2">
+          <ImagePicker image={postImage} onChange={setPostImage} />
+          <SpoilerAlertPicker selected={postSpoilerGames} onChange={setPostSpoilerGames} />
+        </div>
         <div className="text-end">
           <Button type="submit" variant="primary">Post</Button>
         </div>
       </Form>
 
       {/* Feed */}
-      {posts.map((post) => (
-        <div key={post.id} id={`gamefeed-post-${post.id}`} className="border rounded p-3 mb-3 bg-white">
+      {posts.map((post) => {
+        const isSpoiler = Array.isArray(post.spoiler_games) && post.spoiler_games.length > 0;
+        const isLocked = isSpoiler && post.is_locked;
+        return (
+        <div key={post.id} id={`gamefeed-post-${post.id}`} className="border rounded p-3 mb-3 bg-white" style={{ position: 'relative' }}>
+          {isSpoiler && <SpoilerBadge />}
           <div className="d-flex align-items-center mb-2">
             <img
               src={post.avatar ? `${baseURL}/user/uploads/${post.avatar}` : `${baseURL}/user/uploads/default_avatar.png`}
@@ -328,20 +427,28 @@ function GameFeed({ userId, baseURL, focusPostId }) {
             />
             <div>
               <div className="fw-bold">{post.username}</div>
-              <div className="text-muted" style={{ fontSize: '0.7rem' }}>{formatLocalTime(post.created_at)}</div>
+              <div className="text-muted" style={{ fontSize: '0.7rem' }}>{computeSpoilerDisplayTime(post)}</div>
             </div>
           </div>
 
-          {post.content && (
-            <div className="mb-2" style={{ whiteSpace: 'pre-wrap' }}>
-              {renderWithMentions(post.content, handleMentionClick)}
-            </div>
-          )}
-
-          {post.image && (
+          {isLocked ? (
             <div className="mb-2">
-              <img src={`${baseURL}/gamefeed/uploads/${post.image}`} alt="" className="img-fluid rounded" style={{ maxHeight: '400px' }} />
+              <SpoilerPlaceholderBody item={post} navigate={navigate} onAuthorClick={handleMentionClick} />
             </div>
+          ) : (
+            <>
+              {post.content && (
+                <div className="mb-2" style={{ whiteSpace: 'pre-wrap' }}>
+                  {renderWithMentions(post.content, handleMentionClick)}
+                </div>
+              )}
+
+              {post.image && (
+                <div className="mb-2">
+                  <img src={`${baseURL}/gamefeed/uploads/${post.image}`} alt="" className="img-fluid rounded" style={{ maxHeight: '400px' }} />
+                </div>
+              )}
+            </>
           )}
 
           <ReactionBar
@@ -363,8 +470,12 @@ function GameFeed({ userId, baseURL, focusPostId }) {
 
           {expandedComments[post.id] && (
             <div className="mt-2 ps-2 border-start">
-              {expandedComments[post.id].map((c) => (
-                <div key={c.id} className="d-flex mb-2">
+              {expandedComments[post.id].map((c) => {
+                const isCommentSpoiler = Array.isArray(c.spoiler_games) && c.spoiler_games.length > 0;
+                const isCommentLocked = isCommentSpoiler && c.is_locked;
+                return (
+                <div key={c.id} className="d-flex mb-2" style={{ position: 'relative' }}>
+                  {isCommentSpoiler && <SpoilerBadge />}
                   <img
                     src={c.avatar ? `${baseURL}/user/uploads/${c.avatar}` : `${baseURL}/user/uploads/default_avatar.png`}
                     alt="avatar"
@@ -373,16 +484,23 @@ function GameFeed({ userId, baseURL, focusPostId }) {
                   />
                   <div style={{ whiteSpace: 'pre-wrap' }}>
                     <span className="fw-bold me-1">{c.username}</span>
-                    <span>{renderWithMentions(c.text, handleMentionClick)}</span>
-                    {c.image && (
-                      <div className="mt-1">
-                        <img src={`${baseURL}/gamefeed/uploads/${c.image}`} alt="" className="img-fluid rounded" style={{ maxHeight: '200px' }} />
-                      </div>
+                    {isCommentLocked ? (
+                      <SpoilerPlaceholderBody item={c} navigate={navigate} onAuthorClick={handleMentionClick} />
+                    ) : (
+                      <>
+                        <span>{renderWithMentions(c.text, handleMentionClick)}</span>
+                        {c.image && (
+                          <div className="mt-1">
+                            <img src={`${baseURL}/gamefeed/uploads/${c.image}`} alt="" className="img-fluid rounded" style={{ maxHeight: '200px' }} />
+                          </div>
+                        )}
+                      </>
                     )}
-                    <div className="text-muted" style={{ fontSize: '0.65rem' }}>{formatLocalTime(c.created_at)}</div>
+                    <div className="text-muted" style={{ fontSize: '0.65rem' }}>{computeSpoilerDisplayTime(c)}</div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
               <div className="d-flex gap-2 align-items-end">
                 <MentionTextarea
                   value={commentDrafts[post.id] || ''}
@@ -394,14 +512,21 @@ function GameFeed({ userId, baseURL, focusPostId }) {
                 />
                 <Button size="sm" onClick={() => handleAddComment(post.id)}>Send</Button>
               </div>
-              <ImagePicker
-                image={commentImages[post.id] || null}
-                onChange={(file) => setCommentImages((prev) => ({ ...prev, [post.id]: file }))}
-              />
+              <div className="d-flex align-items-start gap-2">
+                <ImagePicker
+                  image={commentImages[post.id] || null}
+                  onChange={(file) => setCommentImages((prev) => ({ ...prev, [post.id]: file }))}
+                />
+                <SpoilerAlertPicker
+                  selected={commentSpoilerGames[post.id] || []}
+                  onChange={(tags) => setCommentSpoilerGames((prev) => ({ ...prev, [post.id]: tags }))}
+                />
+              </div>
             </div>
           )}
         </div>
-      ))}
+        );
+      })}
 
       {posts.length === 0 && !loading && (
         <p className="text-center text-white">No posts yet - be the first to share something!</p>

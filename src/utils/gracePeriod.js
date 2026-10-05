@@ -138,3 +138,99 @@ export function consumeGracePeriodJump(gameKey) {
     return null;
   }
 }
+
+// --- Spoiler Alert (GameFeed) ---
+
+export const GAME_DISPLAY_NAMES = {
+  wordle: 'Wordle',
+  connections: 'Connections',
+  phrazle: 'Phrazle',
+  quordle: 'Quordle',
+  octordle: 'Octordle',
+};
+
+function formatLongDate(date) {
+  return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+}
+
+function formatGameNumber(n) {
+  return n.toLocaleString('en-US');
+}
+
+// Builds the Spoiler Alert dropdown's checklist: each game's own
+// specific current period, computed the same way its own Score Modal
+// would right now - a tag records exactly this period so other
+// Gamlers are gated against the correct game/date, no matter when they
+// later view the post.
+export function getSpoilerGameOptions(now = new Date()) {
+  const dateStr = formatDateOnly(now);
+  const longDate = formatLongDate(now);
+  const phrazle = getPhrazlePeriod(now);
+  const phrazlePeriod = phrazle.isAM ? 'AM' : 'PM';
+
+  return [
+    {
+      game: 'wordle',
+      period: null,
+      date: dateStr,
+      number: getWordleGameNumber(now),
+      label: `Wordle game #${formatGameNumber(getWordleGameNumber(now))} (${longDate})`,
+    },
+    {
+      game: 'connections',
+      period: null,
+      date: dateStr,
+      number: getConnectionsGameNumber(now),
+      label: `Connections game #${formatGameNumber(getConnectionsGameNumber(now))} (${longDate})`,
+    },
+    {
+      game: 'phrazle',
+      period: phrazlePeriod,
+      date: dateStr,
+      number: phrazle.number,
+      label: `Phrazle game #${formatGameNumber(phrazle.number)} (${longDate} ${phrazlePeriod})`,
+    },
+    {
+      game: 'quordle',
+      period: null,
+      date: dateStr,
+      number: getQuordleGameNumber(now),
+      label: `Quordle game #${formatGameNumber(getQuordleGameNumber(now))} (${longDate})`,
+    },
+    {
+      game: 'octordle',
+      period: null,
+      date: dateStr,
+      number: getOctordleGameNumber(now),
+      label: `Octordle game #${formatGameNumber(getOctordleGameNumber(now))} (${longDate})`,
+    },
+  ];
+}
+
+// The instant a tagged game/period's 3-hour grace window fully closes,
+// using the viewer's own local clock - same rule as every other grace
+// calculation in this file, just anchored to a specific past date
+// instead of "today."
+export function getTaggedPeriodGraceEnd(game, date, period) {
+  const [y, m, d] = date.split('-').map(Number);
+  const hour = (game === 'phrazle' && period === 'PM') ? 12 : 0;
+  const periodStart = new Date(y, m - 1, d, hour, 0, 0, 0);
+  return new Date(periodStart.getTime() + GRACE_PERIOD_MS);
+}
+
+export function isTaggedPeriodGraceExpired(game, date, period, now = new Date()) {
+  return now.getTime() >= getTaggedPeriodGraceEnd(game, date, period).getTime();
+}
+
+// e.g. "Wordle, Connections, PM Phrazle, Quordle and Octordle" - Phrazle
+// specifically gets its AM/PM prefix since the game name alone doesn't
+// say which of its two daily periods was tagged.
+export function describeSpoilerGames(tags) {
+  const names = tags.map((t) => {
+    if (t.game === 'phrazle') return `${t.period === 'AM' ? 'AM' : 'PM'} Phrazle`;
+    return GAME_DISPLAY_NAMES[t.game] || t.game;
+  });
+  if (names.length === 1) return names[0];
+  if (names.length === 2) return `${names[0]} and ${names[1]}`;
+  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+}
