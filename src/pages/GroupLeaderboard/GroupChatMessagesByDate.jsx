@@ -6,14 +6,54 @@ import timezone from "dayjs/plugin/timezone";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 import axios from "axios";
+import { Button } from "react-bootstrap";
 import { toast } from "react-toastify";
 import MemberProfile from "../../constant/Models/MemberProfile";
 import ReactionBar from "../../components/ReactionBar";
+import MentionTextarea from "../../components/MentionTextarea";
 import { renderWithMentions } from "../../utils/mentions";
 
 function GroupChatMessagesByDate({ gameName, messages, userId, baseURL, highlightMsgId, generalChat, onMessagesChanged }) {
   const [selectedMember, setSelectedMember] = useState(null);
   const [showProfile, setShowProfile] = useState(false);
+  const [editingMsgId, setEditingMsgId] = useState(null);
+  const [editText, setEditText] = useState("");
+
+  const startEdit = (msg) => {
+    setEditingMsgId(msg.id);
+    setEditText(msg.message || "");
+  };
+
+  const cancelEdit = () => {
+    setEditingMsgId(null);
+    setEditText("");
+  };
+
+  const handleSaveEdit = async (msgId) => {
+    const text = editText.trim();
+    if (!text) return;
+    try {
+      const res = await axios.post(`${baseURL}/groups/edit-message.php`, {
+        message_id: msgId,
+        user_id: userId,
+        message: text,
+        general_chat: generalChat,
+        // Per-game chat's created_at is the sender's own local wall-clock
+        // time, not UTC - edited_at follows the same convention (general
+        // chat ignores this and always stamps its own UTC instant server-side).
+        edited_at: dayjs().format("YYYY-MM-DD HH:mm:ss"),
+      });
+      if (res.data.success) {
+        setEditingMsgId(null);
+        setEditText("");
+        if (onMessagesChanged) onMessagesChanged();
+      } else {
+        toast.error(res.data.error || "Could not save that edit.");
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.error || "Failed to save your edit - please try again.");
+    }
+  };
 
   const handleShowProfile = (msg) => {
     setSelectedMember({
@@ -190,29 +230,62 @@ function GroupChatMessagesByDate({ gameName, messages, userId, baseURL, highligh
                       textAlign: "left",
                     }}
                   >
-                    <div style={{ paddingRight: "40px", marginBottom: "5px"}}>{renderWithMentions(msg.message, handleMentionClick)}</div>
-                    <div
-                      style={{
-                        position: "absolute",
-                        bottom: "3px",
-                        right: "5px",
-                        fontSize: "0.6rem",
-                        color: "#6c757d",
-                      }}
-                    >
-                      
-                      {formattedTime}
-                    </div>
+                    {editingMsgId === msg.id ? (
+                      <div style={{ minWidth: "220px" }}>
+                        <MentionTextarea
+                          value={editText}
+                          onChange={setEditText}
+                          minRows={1}
+                          maxRows={8}
+                          baseURL={baseURL}
+                        />
+                        <div className="text-end mt-1">
+                          <Button size="sm" variant="outline-secondary" className="me-2" onClick={cancelEdit}>Cancel</Button>
+                          <Button size="sm" variant="primary" onClick={() => handleSaveEdit(msg.id)}>Save</Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div style={{ paddingRight: "40px", marginBottom: "5px"}}>{renderWithMentions(msg.message, handleMentionClick)}</div>
+                        <div
+                          style={{
+                            position: "absolute",
+                            bottom: "3px",
+                            right: "5px",
+                            fontSize: "0.6rem",
+                            color: "#6c757d",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "6px",
+                          }}
+                        >
+                          {isMe && (
+                            <button
+                              type="button"
+                              className="btn btn-sm p-0"
+                              style={{ fontSize: "0.6rem", color: "#6c757d", textDecoration: "underline" }}
+                              onClick={() => startEdit(msg)}
+                            >
+                              Edit
+                            </button>
+                          )}
+                          {msg.edited_at && <span>(edited)</span>}
+                          {formattedTime}
+                        </div>
+                      </>
+                    )}
                     {/* 💖 Reactions (bottom-left corner like WhatsApp) -
                         shared ReactionBar, same feature as the GameFeed. */}
-                    <div style={{ position: "absolute", bottom: "-14px", left: "0px" }}>
-                      <ReactionBar
-                        reactions={msg.reactions}
-                        reactionIdPrefix={msg.id}
-                        canAddReaction={!isMe}
-                        onReact={(emoji) => handleEmojiSelect({ emoji }, msg.id)}
-                      />
-                    </div>
+                    {editingMsgId !== msg.id && (
+                      <div style={{ position: "absolute", bottom: "-14px", left: "0px" }}>
+                        <ReactionBar
+                          reactions={msg.reactions}
+                          reactionIdPrefix={msg.id}
+                          canAddReaction={!isMe}
+                          onReact={(emoji) => handleEmojiSelect({ emoji }, msg.id)}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

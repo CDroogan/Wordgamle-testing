@@ -168,7 +168,7 @@ function SpoilerPlaceholderBody({ item, navigate, onAuthorClick }) {
   });
 
   return (
-    <div className="fst-italic">
+    <div>
       Play {parts} to see what{' '}
       <span className="home-popup-link" style={{ cursor: 'pointer' }} onClick={() => onAuthorClick(item.username)}>
         {item.username}
@@ -286,6 +286,10 @@ function GameFeed({ userId, baseURL, focusPostId }) {
   const [commentDrafts, setCommentDrafts] = useState({}); // postId -> text
   const [commentImages, setCommentImages] = useState({}); // postId -> File
   const [commentSpoilerGames, setCommentSpoilerGames] = useState({}); // postId -> tags[]
+  const [editingPostId, setEditingPostId] = useState(null);
+  const [editPostText, setEditPostText] = useState('');
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editCommentText, setEditCommentText] = useState('');
   const [selectedMember, setSelectedMember] = useState(null);
   const [showProfile, setShowProfile] = useState(false);
   const sentinelRef = useRef(null);
@@ -464,6 +468,63 @@ function GameFeed({ userId, baseURL, focusPostId }) {
     }
   };
 
+  const startEditPost = (post) => {
+    setEditingPostId(post.id);
+    setEditPostText(post.content || '');
+  };
+
+  const cancelEditPost = () => {
+    setEditingPostId(null);
+    setEditPostText('');
+  };
+
+  const handleSaveEditPost = async (postId) => {
+    const content = editPostText.trim();
+    if (!content) return;
+    try {
+      const res = await Axios.post(`${baseURL}/gamefeed/edit-post.php`, { post_id: postId, user_id: userId, content });
+      if (res.data.success) {
+        setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, content, edited_at: res.data.edited_at } : p)));
+        setEditingPostId(null);
+        setEditPostText('');
+      } else {
+        toast.error(res.data.error || 'Could not save that edit.');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to save your edit - please try again.');
+    }
+  };
+
+  const startEditComment = (comment) => {
+    setEditingCommentId(comment.id);
+    setEditCommentText(comment.text || '');
+  };
+
+  const cancelEditComment = () => {
+    setEditingCommentId(null);
+    setEditCommentText('');
+  };
+
+  const handleSaveEditComment = async (postId, commentId) => {
+    const text = editCommentText.trim();
+    if (!text) return;
+    try {
+      const res = await Axios.post(`${baseURL}/gamefeed/edit-comment.php`, { comment_id: commentId, user_id: userId, text });
+      if (res.data.success) {
+        setExpandedComments((prev) => ({
+          ...prev,
+          [postId]: (prev[postId] || []).map((c) => (c.id === commentId ? { ...c, text, edited_at: res.data.edited_at } : c)),
+        }));
+        setEditingCommentId(null);
+        setEditCommentText('');
+      } else {
+        toast.error(res.data.error || 'Could not save that edit.');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to save your edit - please try again.');
+    }
+  };
+
   return (
     <div className="text-start" style={{ background: '#330072', borderRadius: '1rem', padding: '1rem' }}>
       {/* Post composer - a Gamler can type freely, paste a game result
@@ -505,13 +566,29 @@ function GameFeed({ userId, baseURL, focusPostId }) {
             />
             <div>
               <div className="fw-bold">{post.username}</div>
-              <div className="text-muted" style={{ fontSize: '0.7rem' }}>{computeSpoilerDisplayTime(post)}</div>
+              <div className="text-muted" style={{ fontSize: '0.7rem' }}>
+                {computeSpoilerDisplayTime(post)}{post.edited_at && ' (edited)'}
+              </div>
             </div>
           </div>
 
           {isLocked ? (
             <div className="mb-2">
               <SpoilerPlaceholderBody item={post} navigate={navigate} onAuthorClick={handleMentionClick} />
+            </div>
+          ) : editingPostId === post.id ? (
+            <div className="mb-2">
+              <MentionTextarea
+                value={editPostText}
+                onChange={setEditPostText}
+                minRows={2}
+                maxRows={12}
+                baseURL={baseURL}
+              />
+              <div className="text-end mt-1">
+                <Button size="sm" variant="outline-secondary" className="me-2" onClick={cancelEditPost}>Cancel</Button>
+                <Button size="sm" variant="primary" onClick={() => handleSaveEditPost(post.id)}>Save</Button>
+              </div>
             </div>
           ) : (
             <>
@@ -525,6 +602,12 @@ function GameFeed({ userId, baseURL, focusPostId }) {
                 <div className="mb-2">
                   <img src={`${baseURL}/gamefeed/uploads/${post.image}`} alt="" className="img-fluid rounded" style={{ maxHeight: '400px' }} />
                 </div>
+              )}
+
+              {post.user_id === userId && (
+                <button type="button" className="btn btn-sm text-muted p-0 mb-2" onClick={() => startEditPost(post)}>
+                  Edit
+                </button>
               )}
             </>
           )}
@@ -565,6 +648,20 @@ function GameFeed({ userId, baseURL, focusPostId }) {
                     <span className="fw-bold me-1" style={{ cursor: 'pointer' }} onClick={() => handleMentionClick(c.username)}>{c.username}</span>
                     {isCommentLocked ? (
                       <SpoilerPlaceholderBody item={c} navigate={navigate} onAuthorClick={handleMentionClick} />
+                    ) : editingCommentId === c.id ? (
+                      <div>
+                        <MentionTextarea
+                          value={editCommentText}
+                          onChange={setEditCommentText}
+                          minRows={1}
+                          maxRows={8}
+                          baseURL={baseURL}
+                        />
+                        <div className="text-end mt-1">
+                          <Button size="sm" variant="outline-secondary" className="me-2" onClick={cancelEditComment}>Cancel</Button>
+                          <Button size="sm" variant="primary" onClick={() => handleSaveEditComment(post.id, c.id)}>Save</Button>
+                        </div>
+                      </div>
                     ) : (
                       <>
                         <span>{renderWithMentions(c.text, handleMentionClick)}</span>
@@ -575,7 +672,16 @@ function GameFeed({ userId, baseURL, focusPostId }) {
                         )}
                       </>
                     )}
-                    <div className="text-muted" style={{ fontSize: '0.65rem' }}>{computeSpoilerDisplayTime(c)}</div>
+                    {editingCommentId !== c.id && (
+                      <div className="text-muted" style={{ fontSize: '0.65rem' }}>
+                        {computeSpoilerDisplayTime(c)}{c.edited_at && ' (edited)'}
+                        {c.user_id === userId && !isCommentLocked && (
+                          <button type="button" className="btn btn-sm text-muted p-0 ms-2" onClick={() => startEditComment(c)}>
+                            Edit
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
                 );
