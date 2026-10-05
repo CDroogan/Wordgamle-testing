@@ -42,6 +42,12 @@ body{
 .form-check-input, .form-radio-input{
   accent-color: var(--wordgamle-accent);
 }
+/* The blinking text cursor (and, on Android Chrome, the draggable
+   selection handle beneath it) in any text field/textarea site-wide -
+   brand purple instead of each browser's own default color. */
+input, textarea, select, [contenteditable="true"]{
+  caret-color: var(--wordgamle-accent);
+}
 .form-check-input:checked{
   background-color: var(--wordgamle-accent) !important;
   border-color: var(--wordgamle-accent) !important;

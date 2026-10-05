@@ -145,7 +145,7 @@ function MentionTextarea({ value, onChange, placeholder, minRows, maxRows, baseU
         onScroll={(e) => { if (backdropRef.current) backdropRef.current.scrollTop = e.target.scrollTop; }}
         placeholder={placeholder}
         className={boxClassName}
-        style={hasConfirmedMention ? { position: 'relative', background: 'transparent', color: 'transparent', caretColor: '#000' } : undefined}
+        style={hasConfirmedMention ? { position: 'relative', background: 'transparent', color: 'transparent', caretColor: 'var(--wordgamle-accent)' } : undefined}
       />
       {activeWord && suggestions.length > 0 && (
         <div
