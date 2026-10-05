@@ -90,9 +90,9 @@ function SpoilerBadge({ item, size = 32, top = '1rem' }) {
           width: size,
           height: size,
           borderRadius: '50%',
-          border: '2px solid #6f42c1',
+          border: '2px solid var(--wordgamle-accent)',
           background: '#fff',
-          color: '#6f42c1',
+          color: 'var(--wordgamle-accent)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -122,7 +122,7 @@ function SpoilerBadge({ item, size = 32, top = '1rem' }) {
             textAlign: 'left',
           }}
         >
-          <div className="fw-bold mb-1" style={{ color: '#6f42c1' }}>Spoiler Alert!</div>
+          <div className="fw-bold mb-1" style={{ color: 'var(--wordgamle-accent)' }}>Spoiler Alert!</div>
           <div style={{ fontSize: '0.85rem' }}>
             {item.is_locked
               ? <>You'll see <strong>{item.username}</strong>'s post when you play {gameRefs}.</>

@@ -41,7 +41,7 @@ function SpoilerAlertPicker({ selected, onChange }) {
       <button
         type="button"
         className={`btn btn-sm text-start ${selected.length > 0 ? 'text-white' : 'btn-outline-secondary'}`}
-        style={selected.length > 0 ? { background: '#6f42c1', borderColor: '#6f42c1' } : undefined}
+        style={selected.length > 0 ? { background: 'var(--wordgamle-accent)', borderColor: 'var(--wordgamle-accent)' } : undefined}
         onClick={() => setOpen((o) => !o)}
       >
         Does your post contain a Spoiler?{selected.length > 0 ? ` (${selected.length})` : ''}
@@ -62,7 +62,7 @@ function SpoilerAlertPicker({ selected, onChange }) {
             marginBottom: '6px',
           }}
         >
-          <div className="fw-bold mb-1" style={{ color: '#6f42c1' }}>Spoiler Alert!</div>
+          <div className="fw-bold mb-1" style={{ color: 'var(--wordgamle-accent)' }}>Spoiler Alert!</div>
           <div className="text-muted mb-2" style={{ fontSize: '0.75rem' }}>
             If you plan to post something that will include a hint to a current game's answer, choose the appropriate game(s) and those who haven't played yet won't see your post until they play.
           </div>
