@@ -207,15 +207,26 @@ export function getSpoilerGameOptions(now = new Date()) {
   ];
 }
 
-// The instant a tagged game/period's 3-hour grace window fully closes,
-// using the viewer's own local clock - same rule as every other grace
-// calculation in this file, just anchored to a specific past date
-// instead of "today."
+// The instant a tagged game/period's own spoiler protection fully
+// closes, using the viewer's own local clock. This is NOT "3 hours
+// after the tagged period starts" - that would barely protect anything,
+// since most Gamlers play well after their day begins. It's the same
+// rule already used everywhere else in this file for "is a period still
+// gracable": a period isn't considered fully over until 3 hours into
+// the *next* period (isDailyGraceActive/isPhrazleGraceActive both treat
+// the first 3 hours of a new period as grace time for the one before
+// it) - so a tagged Connections post from today isn't safe to reveal to
+// everyone until 3am tomorrow, a tagged AM Phrazle post until 3pm today,
+// and a tagged PM Phrazle post until 3am tomorrow.
 export function getTaggedPeriodGraceEnd(game, date, period) {
   const [y, m, d] = date.split('-').map(Number);
-  const hour = (game === 'phrazle' && period === 'PM') ? 12 : 0;
-  const periodStart = new Date(y, m - 1, d, hour, 0, 0, 0);
-  return new Date(periodStart.getTime() + GRACE_PERIOD_MS);
+  let nextPeriodStart;
+  if (game === 'phrazle' && period === 'AM') {
+    nextPeriodStart = new Date(y, m - 1, d, 12, 0, 0, 0); // PM, same day
+  } else {
+    nextPeriodStart = new Date(y, m - 1, d + 1, 0, 0, 0, 0); // next calendar day
+  }
+  return new Date(nextPeriodStart.getTime() + GRACE_PERIOD_MS);
 }
 
 export function isTaggedPeriodGraceExpired(game, date, period, now = new Date()) {
