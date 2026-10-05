@@ -149,12 +149,43 @@ export const GAME_DISPLAY_NAMES = {
   octordle: 'Octordle',
 };
 
+// The same external site each game's own "Play" button sends a Gamler
+// to (see each game's own PlayService component) - a Spoiler Alert
+// placeholder's game link goes straight there too, not to this site's
+// own internal game page.
+export const GAME_PLAY_URLS = {
+  wordle: 'https://www.nytimes.com/games/wordle/index.html',
+  connections: 'https://www.nytimes.com/games/connections',
+  phrazle: 'https://solitaired.com/phrazle',
+  quordle: 'https://www.merriam-webster.com/games/quordle/#/classic',
+  octordle: 'https://www.merriam-webster.com/games/octordle/daily',
+};
+
 function formatLongDate(date) {
   return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 }
 
 function formatGameNumber(n) {
   return n.toLocaleString('en-US');
+}
+
+function parseDateOnly(dateStr) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+// The same "Connections game #1,212 (October 5, 2026)" style reference
+// used both in the Spoiler Alert dropdown's checklist and in the
+// explanatory popup behind the Ⓢ badge - built from a stored tag
+// (game/date/period/number) rather than the current moment, so it still
+// describes the actual tagged game correctly no matter when it's shown.
+export function formatSpoilerGameReference(tag) {
+  const longDate = formatLongDate(parseDateOnly(tag.date));
+  const numberStr = formatGameNumber(tag.number);
+  if (tag.game === 'phrazle') {
+    return `Phrazle game #${numberStr} (${longDate} ${tag.period === 'AM' ? 'AM' : 'PM'})`;
+  }
+  return `${GAME_DISPLAY_NAMES[tag.game] || tag.game} game #${numberStr} (${longDate})`;
 }
 
 // Builds the Spoiler Alert dropdown's checklist: each game's own
@@ -164,47 +195,18 @@ function formatGameNumber(n) {
 // later view the post.
 export function getSpoilerGameOptions(now = new Date()) {
   const dateStr = formatDateOnly(now);
-  const longDate = formatLongDate(now);
   const phrazle = getPhrazlePeriod(now);
   const phrazlePeriod = phrazle.isAM ? 'AM' : 'PM';
 
-  return [
-    {
-      game: 'wordle',
-      period: null,
-      date: dateStr,
-      number: getWordleGameNumber(now),
-      label: `Wordle game #${formatGameNumber(getWordleGameNumber(now))} (${longDate})`,
-    },
-    {
-      game: 'connections',
-      period: null,
-      date: dateStr,
-      number: getConnectionsGameNumber(now),
-      label: `Connections game #${formatGameNumber(getConnectionsGameNumber(now))} (${longDate})`,
-    },
-    {
-      game: 'phrazle',
-      period: phrazlePeriod,
-      date: dateStr,
-      number: phrazle.number,
-      label: `Phrazle game #${formatGameNumber(phrazle.number)} (${longDate} ${phrazlePeriod})`,
-    },
-    {
-      game: 'quordle',
-      period: null,
-      date: dateStr,
-      number: getQuordleGameNumber(now),
-      label: `Quordle game #${formatGameNumber(getQuordleGameNumber(now))} (${longDate})`,
-    },
-    {
-      game: 'octordle',
-      period: null,
-      date: dateStr,
-      number: getOctordleGameNumber(now),
-      label: `Octordle game #${formatGameNumber(getOctordleGameNumber(now))} (${longDate})`,
-    },
+  const tags = [
+    { game: 'wordle', period: null, date: dateStr, number: getWordleGameNumber(now) },
+    { game: 'connections', period: null, date: dateStr, number: getConnectionsGameNumber(now) },
+    { game: 'phrazle', period: phrazlePeriod, date: dateStr, number: phrazle.number },
+    { game: 'quordle', period: null, date: dateStr, number: getQuordleGameNumber(now) },
+    { game: 'octordle', period: null, date: dateStr, number: getOctordleGameNumber(now) },
   ];
+
+  return tags.map((tag) => ({ ...tag, label: formatSpoilerGameReference(tag) }));
 }
 
 // The instant a tagged game/period's own spoiler protection fully
@@ -244,4 +246,14 @@ export function describeSpoilerGames(tags) {
   if (names.length === 1) return names[0];
   if (names.length === 2) return `${names[0]} and ${names[1]}`;
   return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+}
+
+// Same join pattern as describeSpoilerGames, but with each game's full
+// "Connections game #1,212 (October 5, 2026)" reference instead of just
+// its name - used by the Ⓢ badge's explanatory popup.
+export function describeSpoilerGameReferences(tags) {
+  const refs = tags.map(formatSpoilerGameReference);
+  if (refs.length === 1) return refs[0];
+  if (refs.length === 2) return `${refs[0]} and ${refs[1]}`;
+  return `${refs.slice(0, -1).join(', ')} and ${refs[refs.length - 1]}`;
 }

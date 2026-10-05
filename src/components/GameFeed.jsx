@@ -5,14 +5,13 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 import { toast } from 'react-toastify';
-import { useNavigate } from 'react-router-dom';
 import { FaImage, FaTimes } from 'react-icons/fa';
 import ReactionBar from './ReactionBar';
 import MemberProfile from '../constant/Models/MemberProfile';
 import MentionTextarea from './MentionTextarea';
 import SpoilerAlertPicker from './SpoilerAlertPicker';
 import { renderWithMentions } from '../utils/mentions';
-import { GAME_DISPLAY_NAMES, getTaggedPeriodGraceEnd } from '../utils/gracePeriod';
+import { GAME_DISPLAY_NAMES, GAME_PLAY_URLS, getTaggedPeriodGraceEnd, describeSpoilerGameReferences } from '../utils/gracePeriod';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -58,23 +57,86 @@ function computeSpoilerDisplayTime(item) {
 }
 
 // Purple circled "S" badge marking a Spoiler Alert post/comment - shown
-// in the same spot whether the viewer is looking at the real content or
-// still at its Placeholder Post.
-function SpoilerBadge() {
+// in the same spot (sized and vertically aligned to match the author's
+// own avatar circle) whether the viewer is looking at the real content
+// or still at its Placeholder Post. Clicking it opens a small popup
+// explaining what it means and exactly which game(s) gate it.
+function SpoilerBadge({ item, size = 32, top = '1rem' }) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleClickOutside = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [open]);
+
+  const gameRefs = describeSpoilerGameReferences(item.spoiler_games);
+
   return (
-    <span
-      title="Spoiler Alert"
-      style={{ position: 'absolute', top: '6px', right: '10px', color: '#6f42c1', fontSize: '1.4rem', fontWeight: 'bold', lineHeight: 1 }}
-    >
-      Ⓢ
-    </span>
+    <div ref={containerRef} style={{ position: 'absolute', top, right: '1rem', zIndex: 10 }}>
+      <div
+        role="button"
+        title="Spoiler Alert"
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          width: size,
+          height: size,
+          borderRadius: '50%',
+          border: '2px solid #6f42c1',
+          background: '#fff',
+          color: '#6f42c1',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontWeight: 'bold',
+          fontSize: size * 0.5,
+          lineHeight: 1,
+          cursor: 'pointer',
+        }}
+      >
+        S
+      </div>
+      {open && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '100%',
+            right: 0,
+            marginTop: '6px',
+            background: '#fff',
+            border: '1px solid #ddd',
+            borderRadius: '8px',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+            zIndex: 30,
+            width: '260px',
+            padding: '12px',
+            fontWeight: 'normal',
+            textAlign: 'left',
+          }}
+        >
+          <div className="fw-bold mb-1" style={{ color: '#6f42c1' }}>Spoiler Alert!</div>
+          <div style={{ fontSize: '0.85rem' }}>
+            {item.is_locked
+              ? <>You'll see <strong>{item.username}</strong>'s post when you play {gameRefs}.</>
+              : <>This post is only visible to those who have already played {gameRefs}.</>}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
 // The teaser shown instead of a locked post/comment's real content - the
-// tagged game name(s) and the author's name are individually clickable,
-// styled like the existing mention links.
-function SpoilerPlaceholderBody({ item, navigate, onAuthorClick }) {
+// tagged game name(s) link straight out to that game's real site (same
+// destination as that game's own "Play" button), and the author's name
+// opens their profile, both styled like the existing mention links.
+function SpoilerPlaceholderBody({ item, onAuthorClick }) {
   const tags = item.spoiler_games;
   const parts = [];
   tags.forEach((t, idx) => {
@@ -87,7 +149,7 @@ function SpoilerPlaceholderBody({ item, navigate, onAuthorClick }) {
         key={`${t.game}-${t.period || ''}`}
         className="home-popup-link"
         style={{ cursor: 'pointer' }}
-        onClick={() => navigate(`/${t.game}`)}
+        onClick={() => window.open(GAME_PLAY_URLS[t.game], '_blank')}
       >
         {label}
       </span>
@@ -176,7 +238,7 @@ function ImagePicker({ image, onChange }) {
         style={{ display: 'none' }}
         onChange={handleFileSelected}
       />
-      <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => inputRef.current?.click()}>
+      <button type="button" className="btn btn-sm btn-outline-secondary text-start" onClick={() => inputRef.current?.click()}>
         <FaImage className="me-1" /> Add photo
       </button>
       {previewUrl && (
@@ -202,7 +264,6 @@ function ImagePicker({ image, onChange }) {
 // stored and shown verbatim (it already contains the real score-grid
 // characters), not re-parsed into a custom grid component.
 function GameFeed({ userId, baseURL, focusPostId }) {
-  const navigate = useNavigate();
   const [posts, setPosts] = useState([]);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -422,8 +483,8 @@ function GameFeed({ userId, baseURL, focusPostId }) {
         const isLocked = isSpoiler && post.is_locked;
         return (
         <div key={post.id} id={`gamefeed-post-${post.id}`} className="border rounded p-3 mb-3 bg-white" style={{ position: 'relative' }}>
-          {isSpoiler && <SpoilerBadge />}
-          <div className="d-flex align-items-center mb-2">
+          {isSpoiler && <SpoilerBadge item={post} size={32} top="1rem" />}
+          <div className="d-flex align-items-center mb-2" style={{ cursor: 'pointer' }} onClick={() => handleMentionClick(post.username)}>
             <img
               src={post.avatar ? `${baseURL}/user/uploads/${post.avatar}` : `${baseURL}/user/uploads/default_avatar.png`}
               alt="avatar"
@@ -438,7 +499,7 @@ function GameFeed({ userId, baseURL, focusPostId }) {
 
           {isLocked ? (
             <div className="mb-2">
-              <SpoilerPlaceholderBody item={post} navigate={navigate} onAuthorClick={handleMentionClick} />
+              <SpoilerPlaceholderBody item={post} onAuthorClick={handleMentionClick} />
             </div>
           ) : (
             <>
@@ -480,17 +541,18 @@ function GameFeed({ userId, baseURL, focusPostId }) {
                 const isCommentLocked = isCommentSpoiler && c.is_locked;
                 return (
                 <div key={c.id} className="d-flex mb-2" style={{ position: 'relative' }}>
-                  {isCommentSpoiler && <SpoilerBadge />}
+                  {isCommentSpoiler && <SpoilerBadge item={c} size={24} top="0" />}
                   <img
                     src={c.avatar ? `${baseURL}/user/uploads/${c.avatar}` : `${baseURL}/user/uploads/default_avatar.png`}
                     alt="avatar"
                     className="rounded-circle me-2 flex-shrink-0"
-                    style={{ width: '24px', height: '24px', objectFit: 'cover', border: '2px solid #0d6efd' }}
+                    style={{ width: '24px', height: '24px', objectFit: 'cover', border: '2px solid #0d6efd', cursor: 'pointer' }}
+                    onClick={() => handleMentionClick(c.username)}
                   />
                   <div style={{ whiteSpace: 'pre-wrap' }}>
-                    <span className="fw-bold me-1">{c.username}</span>
+                    <span className="fw-bold me-1" style={{ cursor: 'pointer' }} onClick={() => handleMentionClick(c.username)}>{c.username}</span>
                     {isCommentLocked ? (
-                      <SpoilerPlaceholderBody item={c} navigate={navigate} onAuthorClick={handleMentionClick} />
+                      <SpoilerPlaceholderBody item={c} onAuthorClick={handleMentionClick} />
                     ) : (
                       <>
                         <span>{renderWithMentions(c.text, handleMentionClick)}</span>

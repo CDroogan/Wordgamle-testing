@@ -40,7 +40,7 @@ function SpoilerAlertPicker({ selected, onChange }) {
     <div ref={containerRef} style={{ position: 'relative', display: 'inline-block' }}>
       <button
         type="button"
-        className={`btn btn-sm ${selected.length > 0 ? 'text-white' : 'btn-outline-secondary'}`}
+        className={`btn btn-sm text-start ${selected.length > 0 ? 'text-white' : 'btn-outline-secondary'}`}
         style={selected.length > 0 ? { background: '#6f42c1', borderColor: '#6f42c1' } : undefined}
         onClick={() => setOpen((o) => !o)}
       >
