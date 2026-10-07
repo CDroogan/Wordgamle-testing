@@ -13,8 +13,20 @@ function WizardSelectScoringMethod({ groupName, leaderboardText, scoringMethod, 
   const [showInfo, setShowInfo] = useState(false);
   const [infoMethod, setInfoMethod] = useState(null);
 
+  // Clicking the actual radio circle both selects the method and shows
+  // its explanation.
   const handlePick = (method) => {
     onSelectMethod(method);
+    setInfoMethod(method);
+    setShowInfo(true);
+  };
+
+  // Clicking the method's NAME only shows its explanation - it must not
+  // change which radio is selected. e.preventDefault() stops the <label
+  // htmlFor=...> from forwarding its click onto the radio it's paired
+  // with, which is what would otherwise toggle the selection.
+  const handlePickInfoOnly = (e, method) => {
+    e.preventDefault();
     setInfoMethod(method);
     setShowInfo(true);
   };
@@ -49,6 +61,7 @@ function WizardSelectScoringMethod({ groupName, leaderboardText, scoringMethod, 
                   className={`form-check-label scoring-label px-2 ${scoringMethod === method ? "text-primary fw-bold" : "text-primary"}`}
                   htmlFor={`wizard-method-${method}`}
                   style={{ cursor: 'pointer' }}
+                  onClick={(e) => handlePickInfoOnly(e, method)}
                 >
                   {method}
                 </label>

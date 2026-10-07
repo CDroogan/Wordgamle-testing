@@ -40,10 +40,23 @@ function SelectScoringMethod({ leaderboardText }) {
         }
     }, [id, userId]); 
 
-    // Handle method selection
+    // Clicking the actual radio circle both selects the method and shows
+    // its explanation - the selection only ever really changes here.
     const handleMethodSelection = (method) => {
         setSelectedMethod(method);
         setScoringMethod(method);  // Update the radio button state immediately
+        setShowModal(true);
+    };
+
+    // Clicking the method's NAME only shows its explanation - it must not
+    // change which radio is selected (that's "Save Method"'s and the
+    // circle's job, not idle curiosity about a method you're not using).
+    // e.preventDefault() here is what stops it: a <label htmlFor=...>
+    // normally forwards its own click onto the radio it's paired with,
+    // which is what was toggling the selection just from reading about it.
+    const handleMethodInfoOnly = (e, method) => {
+        e.preventDefault();
+        setSelectedMethod(method);
         setShowModal(true);
     };
 
@@ -97,12 +110,12 @@ function SelectScoringMethod({ leaderboardText }) {
                                 id={`method-${method}`}
                                 checked={scoringmethod === method}
                                 onChange={() => handleMethodSelection(method)}
-                                onClick={() => handleMethodSelection(method)}
                             />
                             <label
                                 className={`form-check-label scoring-label px-2 ${scoringmethod === method ? "text-primary fw-bold" : "text-primary"}`}
                                 htmlFor={`method-${method}`}
                                 style={{ cursor: "pointer" }}
+                                onClick={(e) => handleMethodInfoOnly(e, method)}
                             >
                                 {method}
                             </label>
