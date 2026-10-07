@@ -35,11 +35,14 @@ function UserProfile() {
 
     const USER_AUTH_DATA = JSON.parse(localStorage.getItem('auth'));
     const loginuserEmail = USER_AUTH_DATA?.email;
+    const userId = USER_AUTH_DATA?.id;
 
     const togglePasswordVisibility = () => setShowPassword(!showPassword);
     const toggleConfirmPasswordVisibility = () => setShowConfirmPassword(!showConfirmPassword);
 
     const [showManage, setShowManage] = useState(false);
+    const [showSettings, setShowSettings] = useState(false);
+    const [pendingInvites, setPendingInvites] = useState([]);
 
     const [registrationformText, setRegistrationFormText] = useState({
             firstname_label: '',
@@ -101,6 +104,57 @@ function UserProfile() {
         };
         if (loginuserEmail) fetchUserData();
     }, [loginuserEmail]);
+
+    // Pending Invitations: accept/decline now live here instead of the
+    // bell dropdown, so a Gamler always has one obvious place to deal
+    // with them - polled lightly so one that arrives while this page is
+    // already open still shows up without a manual refresh.
+    const fetchPendingInvites = async () => {
+        try {
+            const res = await Axios.get(`${baseURL}/groups/get-invites.php?user_id=${userId}`);
+            setPendingInvites(Array.isArray(res.data.invitations) ? res.data.invitations : []);
+        } catch (error) {
+            console.error("Error fetching pending invitations:", error);
+        }
+    };
+
+    useEffect(() => {
+        if (!userId) return;
+        fetchPendingInvites();
+        const interval = setInterval(fetchPendingInvites, 15000);
+        return () => clearInterval(interval);
+    }, [userId]);
+
+    const handleAcceptInvite = async (invite) => {
+        const date = new Date();
+        const pad = (n) => String(n).padStart(2, '0');
+        const formattedDate = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+        try {
+            await Axios.post(`${baseURL}/groups/accept-invite.php`, {
+                user_id: userId,
+                invite_id: invite.id,
+                group_id: invite.group_id,
+                formattedDate,
+            });
+            setPendingInvites((prev) => prev.filter((i) => i.id !== invite.id));
+            toast.success(`Joined '${invite.group_name}'!`);
+            navigate(`/group/${invite.group_id}`);
+        } catch (error) {
+            toast.error("Failed to accept invitation.");
+        }
+    };
+
+    const handleDeclineInvite = async (invite) => {
+        try {
+            await Axios.post(`${baseURL}/groups/decline-invite.php`, {
+                user_id: userId,
+                invite_id: invite.id,
+            });
+            setPendingInvites((prev) => prev.filter((i) => i.id !== invite.id));
+        } catch (error) {
+            toast.error("Failed to decline invitation.");
+        }
+    };
 
     const handleUpload = (e) => {
         const file = e.target.files[0];
@@ -223,43 +277,86 @@ function UserProfile() {
         <Container>
             <Row className="align-content-center justify-content-center">
                 <Col md={5}>
-                    <Form onSubmit={updateUser}>
-                        <Form.Group className="mb-3 text-center">
-                            <div className="profile-pic-wrapper">
-                                <label className="profile-pic-label" onClick={handleAvatarClick}>
-                                    <img
-                                        src={
-                                            previewUrl?.startsWith("blob:")
-                                                ? previewUrl
-                                                : previewUrl
-                                                    ? `${baseURL}/user/uploads/${previewUrl}`
-                                                    : Logo
-                                        }
-                                        alt="Profile"
-                                        className="profile-pic-img"
-                                    />
-                                </label>
-                                <label htmlFor="existingprofilePicInput" className="edit-icon-label" onClick={handleAvatarClick}>
-                                    <FaPencilAlt size={18} color="#ffffff" />
-                                </label>
-                                 <label htmlFor="profilePicInput" className="upload-icon-label">
-                                    <FaUpload  size={18} color="#ffffff" />
-                                </label>
-                                <input
-                                    type="file"
-                                    id="profilePicInput"
-                                    className="profile-pic-input"
-                                    onChange={handleUpload}
-                                    style={{ display: 'none' }}
+                    <div className="mb-3 text-center">
+                        <div className="profile-pic-wrapper">
+                            <label className="profile-pic-label" onClick={handleAvatarClick}>
+                                <img
+                                    src={
+                                        previewUrl?.startsWith("blob:")
+                                            ? previewUrl
+                                            : previewUrl
+                                                ? `${baseURL}/user/uploads/${previewUrl}`
+                                                : Logo
+                                    }
+                                    alt="Profile"
+                                    className="profile-pic-img"
                                 />
-                            </div>
-                        </Form.Group>
-
-                        <div className='text-center'>
-                            <h2>{username || "User"}</h2>
-                            <h4>{firstName} {lastName}</h4>
+                            </label>
+                            <label htmlFor="existingprofilePicInput" className="edit-icon-label" onClick={handleAvatarClick}>
+                                <FaPencilAlt size={18} color="#ffffff" />
+                            </label>
+                             <label htmlFor="profilePicInput" className="upload-icon-label">
+                                <FaUpload  size={18} color="#ffffff" />
+                            </label>
+                            <input
+                                type="file"
+                                id="profilePicInput"
+                                className="profile-pic-input"
+                                onChange={handleUpload}
+                                style={{ display: 'none' }}
+                            />
                         </div>
+                    </div>
 
+                    <div className='text-center'>
+                        <h2>{username || "User"}</h2>
+                        <h4>{firstName} {lastName}</h4>
+                    </div>
+
+                    {pendingInvites.length > 0 && (
+                        <div className="my-4" style={{ background: '#330072', borderRadius: '1rem', padding: '1rem' }}>
+                            <div className="border rounded p-3 bg-white">
+                                <h5 className="mb-3">Pending Invitations:</h5>
+                                {pendingInvites.map((invite) => (
+                                    <div key={invite.id} className="mb-3">
+                                        <div><strong>Group Name:</strong> {invite.group_name}</div>
+                                        <div className="mb-2">
+                                            <strong>Group Captain:</strong> {invite.first_name} {invite.last_name} ({invite.captain_name})
+                                        </div>
+                                        <Button size="sm" variant="success" className="me-2" onClick={() => handleAcceptInvite(invite)}>
+                                            Accept
+                                        </Button>
+                                        <Button size="sm" variant="danger" onClick={() => handleDeclineInvite(invite)}>
+                                            Decline
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Placeholder for now - a real per-Gamler notification
+                        management page is a planned future feature. Looks
+                        and behaves like any other button; it just doesn't
+                        go anywhere yet. */}
+                    <Button className="btn btn-block btn-hero-lg btn-hero-success mt-2 w-100" onClick={() => {}}>
+                        Manage Notifications
+                    </Button>
+                    <Button className="btn btn-block btn-hero-lg btn-hero-success mt-2 w-100" onClick={() => setShowSettings(true)}>
+                        Profile Settings
+                    </Button>
+                    <Button className="btn btn-block btn-hero-lg btn-hero-success mt-2 w-100" onClick={() => setShowManage(true)}>
+                        Manage Account
+                    </Button>
+                </Col>
+            </Row>
+
+            <Modal show={showSettings} onHide={() => setShowSettings(false)} centered>
+                <Modal.Header closeButton>
+                    <Modal.Title>Profile Settings</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    <Form onSubmit={updateUser}>
                         <Form.Group className="mt-3">
                             <Form.Label
                                 dangerouslySetInnerHTML={{
@@ -395,15 +492,12 @@ function UserProfile() {
                             </InputGroup>
                         </Form.Group>
 
-                        <Button className="btn btn-block btn-hero-lg btn-hero-success mt-4" type="submit">
+                        <Button className="btn btn-block btn-hero-lg btn-hero-success mt-4 w-100" type="submit">
                             Update Profile
                         </Button>
-                        <Button className="btn btn-block btn-hero-lg btn-hero-success mt-4 float-right" onClick={() => setShowManage(true)}>
-                            Manage Account
-                        </Button>
                     </Form>
-                </Col>
-            </Row>
+                </Modal.Body>
+            </Modal>
 
             <Modal show={showManage} onHide={() => setShowManage(false)} centered>
                 <Modal.Header closeButton>

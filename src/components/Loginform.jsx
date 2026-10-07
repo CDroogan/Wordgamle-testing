@@ -33,7 +33,12 @@ function Loginform() {
         } else {
             setEmailOrUsername('');
             setPassword('');
-            const userObject = { email: emailOrUsername, password }; // Use a single field for both email and username
+            // Persisted server-side so scheduled reminders (group invites
+            // today, other reminder types later) know what "8am this
+            // Gamler's local time" actually means - the site has no other
+            // way to learn a Gamler's timezone outside of this.
+            const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            const userObject = { email: emailOrUsername, password, timezone }; // Use a single field for both email and username
             Axios.post(`${baseURL}/auth/login.php`, userObject)
                 .then(res => {
                     if (res.data.status === 'success') {
