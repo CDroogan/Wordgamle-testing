@@ -67,8 +67,17 @@ const GroupInvites = () => {
     }
   };
 
+  // Without this, a notification that arrives while the Gamler already
+  // has the site open (e.g. a group invite sent to them just now) would
+  // never show up in the bell until they reload the page or click
+  // something else that happens to refetch it - mentions already poll
+  // this way, this just brings group_messages (invites included) in
+  // line with that.
+  const groupMessagesIntervalRef = useRef(null);
   useEffect(() => {
     fetchGroupMessages();
+    groupMessagesIntervalRef.current = setInterval(fetchGroupMessages, 8000);
+    return () => clearInterval(groupMessagesIntervalRef.current);
   }, []);
   useEffect(() => {
     if (Object.keys(notificationModes).length) {
