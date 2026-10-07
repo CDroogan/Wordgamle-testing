@@ -405,8 +405,8 @@ function Home() {
 
                                     <h5 className="text-center fw-bold mt-4">Ready to compete?</h5>
                                     <p className="text-center">
-                                        <button type="button" className="home-popup-link" onClick={inviteFriends}>Invite friends</button>
-                                        {' '}and <Link to="/groups?create=1" className="home-popup-link">create groups</Link> for Leaderboards and chatting!
+                                        <button type="button" className="home-popup-link" onClick={inviteFriends}>Invite Friends</button>
+                                        {' '}and <Link to="/groups?create=1" className="home-popup-link">Create Groups</Link> for Leaderboards and chatting!
                                     </p>
 
                                     <h5 className="text-center fw-bold mt-4 mb-3">Share with other Gamlers?</h5>
