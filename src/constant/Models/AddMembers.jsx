@@ -4,7 +4,7 @@ import Axios from "axios";
 import { toast } from 'react-toastify';
 import Select from "react-select";
 
-const AddMembers = ({ showForm, handleFormClose, groupName, groupId, existingMembers = [] }) => {
+const AddMembers = ({ showForm, handleFormClose, groupName, groupId, existingMembers = [], onBack }) => {
   const baseURL = import.meta.env.VITE_BASE_URL;
   const [groups, setGroups] = useState([]);
   const [users, setUsers] = useState([]);
@@ -168,6 +168,11 @@ const AddMembers = ({ showForm, handleFormClose, groupName, groupId, existingMem
         </Form>
       </Modal.Body>
       <Modal.Footer>
+        {onBack && (
+          <Button variant="outline-secondary" onClick={onBack}>
+            Back
+          </Button>
+        )}
         <Button variant="secondary" onClick={handleFormClose}>
           Close
         </Button>

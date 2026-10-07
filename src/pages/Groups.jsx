@@ -4,21 +4,18 @@ import Axios from 'axios';
 import { toast } from 'react-toastify';
 import { useNavigate, useLocation } from 'react-router-dom';
 import 'react-toastify/dist/ReactToastify.css';
-import GroupModal from '../constant/Models/GroupModal';
-import moment from 'moment-timezone';
-import dayjs from 'dayjs';
+import CreateGroupWizard from '../components/CreateGroupWizard';
 
 function Groups() {
     const baseURL = import.meta.env.VITE_BASE_URL;
     const USER_AUTH_DATA = JSON.parse(localStorage.getItem('auth')) || {};
-    
+
     const { id: userId, username: loginUsername, email: loginUserEmail } = USER_AUTH_DATA;
 
     const [groups, setGroups] = useState([]); // Groups created by the user
     const [memberGroups, setMemberGroups] = useState([]); // Groups where the user is a member
     const [showCreateForm, setShowCreateForm] = useState(false);
-    const [groupname, setGroupname] = useState('');
-    const [selectedGames, setSelectedGames] = useState([]);
+    const [isFirstGroup, setIsFirstGroup] = useState(false);
     const [userData, setUserData] = useState({});
 
     const navigate = useNavigate();
@@ -54,7 +51,6 @@ function Groups() {
 
     const handleCreateFormClose = () => {
         setShowCreateForm(false);
-        setGroupname('');
     };
 
     // Lets a link elsewhere in the app (e.g. the homepage's "create
@@ -72,27 +68,19 @@ function Groups() {
             toast.error("Please log in to create a group.");
             return;
         }
+        // "Your first WordGAMLE group" on the wizard's success screen
+        // only applies if this Gamler has never captained one before -
+        // captured here, before the wizard creates anything, so it can't
+        // be thrown off by the new group landing in this same list a
+        // moment later.
+        setIsFirstGroup(groups.length === 0);
         setShowCreateForm(true);
     };
 
-    const onSubmitCreateGroup = async (event) => {
-        event.preventDefault();
-        handleCreateFormClose();
-        const currentDateTime = dayjs().format('YYYY-MM-DD HH:mm:ss');
-        try {
-            const res = await Axios.post(
-                `${baseURL}/groups/create-group.php`,
-                { name: groupname, captain_id: userId, games: selectedGames, created_at: currentDateTime }
-            );
-           
-            // toast.success(res.data.message);
-            setGroups([...groups, { id: res.data.group_id, name: groupname, games: selectedGames.join(", ") }]);
-            navigate(`/group/${res.data.group_id}`);
-        } catch (err) {
-            toast.error(err.response?.data?.message || "An unexpected error occurred.");
-        }
+    const handleGroupCreated = (newGroupId, newGroupName) => {
+        setGroups((prev) => [...prev, { id: newGroupId, name: newGroupName }]);
     };
-    
+
     return (
         <>
             <Container>
@@ -171,27 +159,15 @@ function Groups() {
                 </Row>
 
 
-                {/* Group Creation Modal */}
-                {/* <GroupModal
-                    showForm={showCreateForm}
-                    handleFormClose={handleCreateFormClose}
-                    onSubmit={onSubmitCreateGroup}
-                    groupname={groupname}
-                    setGroupname={setGroupname}
-                    selectedGames={selectedGames}
-                    setSelectedGames={setSelectedGames}
-                    loginUsername={loginUsername}
-                /> */}
-                <GroupModal 
-                    showForm={showCreateForm} 
-                    handleFormClose={handleCreateFormClose} 
-                    groupname={groupname} 
-                    setGroupname={setGroupname} 
-                    selectedGames={selectedGames} 
-                    setSelectedGames={setSelectedGames} 
-                    loginUsername={loginUsername} 
-                    editMode={false} // This tells the modal to show "Create"
-                    onSubmit={onSubmitCreateGroup} 
+                {/* Create Group wizard: name -> games -> scoring method ->
+                    add members -> success, one guided sequence instead of
+                    a single name-only popup. */}
+                <CreateGroupWizard
+                    show={showCreateForm}
+                    onClose={handleCreateFormClose}
+                    onCreated={handleGroupCreated}
+                    isFirstGroup={isFirstGroup}
+                    userId={userId}
                 />
             </Container>
         </>
