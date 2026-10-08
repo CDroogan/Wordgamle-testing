@@ -13,12 +13,11 @@ function WizardSelectScoringMethod({ groupName, leaderboardText, scoringMethod, 
   const [showInfo, setShowInfo] = useState(false);
   const [infoMethod, setInfoMethod] = useState(null);
 
-  // Clicking the actual radio circle both selects the method and shows
-  // its explanation.
+  // Clicking the actual radio circle only changes the selection - a
+  // captain who already knows the methods shouldn't have to dismiss an
+  // explanation popup just to pick one and hit Save.
   const handlePick = (method) => {
     onSelectMethod(method);
-    setInfoMethod(method);
-    setShowInfo(true);
   };
 
   // Clicking the method's NAME only shows its explanation - it must not

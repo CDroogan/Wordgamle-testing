@@ -40,12 +40,11 @@ function SelectScoringMethod({ leaderboardText }) {
         }
     }, [id, userId]); 
 
-    // Clicking the actual radio circle both selects the method and shows
-    // its explanation - the selection only ever really changes here.
+    // Clicking the actual radio circle only changes the selection - a
+    // Gamler who already knows the methods shouldn't have to dismiss an
+    // explanation popup just to pick one and hit Save.
     const handleMethodSelection = (method) => {
-        setSelectedMethod(method);
-        setScoringMethod(method);  // Update the radio button state immediately
-        setShowModal(true);
+        setScoringMethod(method);
     };
 
     // Clicking the method's NAME only shows its explanation - it must not

@@ -17,8 +17,9 @@ function WizardSuccess({ groupName, isFirstGroup, onBack, onContinue, onClose })
           <Modal.Title className="w-100 text-center" style={{ color: 'var(--wordgamle-accent)' }}>{groupName}</Modal.Title>
         </Modal.Header>
         <Modal.Body className="text-center">
+          <p className="fw-bold mb-1">Success!</p>
           <p className="fw-bold">
-            Success! Your {isFirstGroup ? 'first ' : ''}WordGAMLE group is created.
+            Your {isFirstGroup ? 'first' : 'new'} WordGAMLE group is created.
           </p>
           <p>
             <button type="button" className="home-popup-link" onClick={() => setShowLeaderboardsPopup(true)}>Leaderboards</button>
