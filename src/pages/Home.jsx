@@ -162,21 +162,23 @@ function Home() {
         ? `${userAuthData.firstname} ${userAuthData.lastname}`
         : 'A friend';
 
-        const message = `${fullName} has invited you to create an account on WordGAMLE.com\n\n👉 Enter ‘Casa’ (case sensitive) to get into the site!`;
+        const message = `${fullName} has invited you to create an account on WordGAMLE.com\n\n👉 Enter ‘Casa’ (case sensitive) to get into the site! ${frontendURL}`;
 
-        // Keep `text` and `url` separate: Windows' native Share panel
-        // integrations (WhatsApp, Outlook, Teams, ...) read `url` to fill
-        // in the shared link and fail to populate anything without it.
-        // Its own "Copy" tile is simply a "copy link" action by OS design
-        // (same as any other site's share button on Windows) - it only
-        // ever copies `url`, with no way for a web page to change that.
         const shareData = {
             title: 'Join WordGAMLE!',
             text: message,
             url: frontendURL,
         };
 
-        if (navigator.share) {
+        // Only hand off to the OS's native Share panel on an actual mobile
+        // device. On Windows, that panel's share targets (WhatsApp, Copy,
+        // ...) only accept the `url` field and silently drop `text` - no
+        // combination of shareData fields can make them show the full
+        // message, so Desktop instead copies the complete message straight
+        // to the clipboard, same as the no-navigator.share fallback below.
+        const isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+
+        if (isMobileDevice && navigator.share) {
 
             try {
             await navigator.share(shareData);
@@ -186,7 +188,7 @@ function Home() {
             }
         } else {
             try {
-            await navigator.clipboard.writeText(`${message}\n${shareData.url}`);
+            await navigator.clipboard.writeText(message);
             alert('Invite message copied to clipboard!');
             } catch (err) {
             alert('Could not copy. Please share manually.');
