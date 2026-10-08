@@ -46,6 +46,7 @@ function UserProfile() {
     const [pendingInvites, setPendingInvites] = useState([]);
     const [showAcceptWizard, setShowAcceptWizard] = useState(false);
     const [acceptedInvite, setAcceptedInvite] = useState(null);
+    const [showNotificationsSoon, setShowNotificationsSoon] = useState(false);
 
     const [registrationformText, setRegistrationFormText] = useState({
             firstname_label: '',
@@ -339,10 +340,8 @@ function UserProfile() {
                     )}
 
                     {/* Placeholder for now - a real per-Gamler notification
-                        management page is a planned future feature. Looks
-                        and behaves like any other button; it just doesn't
-                        go anywhere yet. */}
-                    <Button className="btn btn-block btn-hero-lg btn-hero-success mt-2 w-100" onClick={() => {}}>
+                        management page is a planned future feature. */}
+                    <Button className="btn btn-block btn-hero-lg btn-hero-success mt-2 w-100" onClick={() => setShowNotificationsSoon(true)}>
                         Manage Notifications
                     </Button>
                     <Button className="btn btn-block btn-hero-lg btn-hero-success mt-2 w-100" onClick={() => setShowSettings(true)}>
@@ -353,6 +352,13 @@ function UserProfile() {
                     </Button>
                 </Col>
             </Row>
+
+            <Modal show={showNotificationsSoon} onHide={() => setShowNotificationsSoon(false)} centered>
+                <Modal.Header closeButton></Modal.Header>
+                <Modal.Body className="text-center">
+                    Notification Preferences Coming Soon
+                </Modal.Body>
+            </Modal>
 
             <Modal show={showSettings} onHide={() => setShowSettings(false)} centered>
                 <Modal.Header closeButton>
