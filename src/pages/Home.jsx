@@ -164,15 +164,17 @@ function Home() {
 
         const message = `${fullName} has invited you to create an account on WordGAMLE.com\n\n👉 Enter ‘Casa’ (case sensitive) to get into the site! ${frontendURL}`;
 
+        // The link is already embedded in `message` above, so shareData
+        // carries only `text` - a separate `url` field here would make
+        // Mobile share targets append the link a second time.
         const shareData = {
             title: 'Join WordGAMLE!',
             text: message,
-            url: frontendURL,
         };
 
         // Only hand off to the OS's native Share panel on an actual mobile
         // device. On Windows, that panel's share targets (WhatsApp, Copy,
-        // ...) only accept the `url` field and silently drop `text` - no
+        // ...) only accept a `url` field and silently drop `text` - no
         // combination of shareData fields can make them show the full
         // message, so Desktop instead copies the complete message straight
         // to the clipboard, same as the no-navigator.share fallback below.
