@@ -3,11 +3,11 @@ import { Modal, Button } from 'react-bootstrap';
 import HomeInfoPopup from './HomeInfoPopup';
 import leaderboardsPopupImg from '../assets/homepage-popups/leaderboards.png';
 
-// Final step of the Create Group wizard. "first" only appears the very
-// first time this Gamler has ever created a group as captain - computed
-// by the caller from the "Groups Created By Me" list it already fetches,
-// before this group existed in it.
-function WizardSuccess({ groupName, isFirstGroup, onBack, onContinue, onClose }) {
+// Shared final "Success!" step for any group-related wizard (creating a
+// group, accepting an invitation, ...) - only the middle message differs
+// per caller; "Success!" and the Leaderboards explanation are identical
+// everywhere this is used.
+function WizardSuccess({ groupName, message, onBack, onContinue, onClose }) {
   const [showLeaderboardsPopup, setShowLeaderboardsPopup] = useState(false);
 
   return (
@@ -18,9 +18,7 @@ function WizardSuccess({ groupName, isFirstGroup, onBack, onContinue, onClose })
         </Modal.Header>
         <Modal.Body className="text-center">
           <p className="fw-bold mb-1">Success!</p>
-          <p className="fw-bold">
-            Your {isFirstGroup ? 'first' : 'new'} WordGAMLE group is created.
-          </p>
+          <p className="fw-bold">{message}</p>
           <p>
             <button type="button" className="home-popup-link" onClick={() => setShowLeaderboardsPopup(true)}>Leaderboards</button>
             {' '}will begin when other group members accept the invitation and start playing!

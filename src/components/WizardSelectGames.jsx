@@ -3,15 +3,20 @@ import { Modal, Button, Form } from 'react-bootstrap';
 
 const GAMES = ["Wordle", "Connections", "Phrazle", "Quordle", "Octordle"];
 
-// Step 2 of the Create Group wizard - a wizard-only popup version of the
-// "Select Leaderboard Games" screen (see MemberGameSelections.jsx for the
-// pre-existing standalone page version, which stays untouched). Starts
-// with every box unchecked rather than pre-filling from the backend,
-// since the captain was already defaulted into every game by
-// create-group.php - this screen is the deliberate, explicit choice
-// point that overrides that default. No Back button: there's no earlier
-// step to return to, since group creation itself already happened.
-function WizardSelectGames({ groupName, leaderboardText, selectedGames, onToggleGame, onSave, onClose, saving }) {
+// Shared "Select Leaderboard Games" popup step for any group-related
+// wizard (creating a group, accepting an invitation, ...) - a wizard-only
+// version of the pre-existing standalone MemberGameSelections.jsx page,
+// which stays untouched. Starts with every box unchecked rather than
+// pre-filling from the backend, since whoever's going through this
+// wizard was already defaulted into every game by whatever just added
+// them to the group (create-group.php for a new captain, accept-
+// invite.php for a joining member) - this screen is the deliberate,
+// explicit choice point that overrides that default. No Back button:
+// there's no earlier step to return to, since joining/creating the
+// group itself already happened. showMemberNote is false for a joining
+// member, who doesn't need to be told other members have this same
+// option - only the captain's own flow mentions that.
+function WizardSelectGames({ groupName, leaderboardText, selectedGames, onToggleGame, onSave, onClose, saving, showMemberNote = true }) {
   return (
     <Modal show backdrop="static" keyboard={false} onHide={onClose}>
       <Modal.Header closeButton>
@@ -21,7 +26,8 @@ function WizardSelectGames({ groupName, leaderboardText, selectedGames, onToggle
         <h5>Select Leaderboard Games:</h5>
         <p dangerouslySetInnerHTML={{ __html: leaderboardText.text4 || '' }}></p>
         <p className="text-muted" style={{ fontSize: '0.9rem' }}>
-          You will be able to add or remove yourself from any game's Leaderboard at any time. And other Group Members will have the same option.
+          You will be able to add or remove yourself from any game's Leaderboard at any time.
+          {showMemberNote && ' And other Group Members will have the same option.'}
         </p>
         <Form className="d-flex flex-wrap justify-content-center">
           {GAMES.map((game) => (

@@ -7,6 +7,7 @@ import Logo from '../../../Logo.png';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import { FaPencilAlt, FaUpload } from 'react-icons/fa';
 import ImageCropModal from './Modals/ImageCropModal';
+import AcceptInviteWizard from '../../AcceptInviteWizard';
 
 function UserProfile() {
     const baseURL = import.meta.env.VITE_BASE_URL;
@@ -43,6 +44,8 @@ function UserProfile() {
     const [showManage, setShowManage] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
     const [pendingInvites, setPendingInvites] = useState([]);
+    const [showAcceptWizard, setShowAcceptWizard] = useState(false);
+    const [acceptedInvite, setAcceptedInvite] = useState(null);
 
     const [registrationformText, setRegistrationFormText] = useState({
             firstname_label: '',
@@ -137,8 +140,8 @@ function UserProfile() {
                 formattedDate,
             });
             setPendingInvites((prev) => prev.filter((i) => i.id !== invite.id));
-            toast.success(`Joined '${invite.group_name}'!`);
-            navigate(`/group/${invite.group_id}`);
+            setAcceptedInvite(invite);
+            setShowAcceptWizard(true);
         } catch (error) {
             toast.error("Failed to accept invitation.");
         }
@@ -637,6 +640,14 @@ function UserProfile() {
                 rawImage={rawImage}
                 cropperRef={cropperRef}
                 cropImage={cropImage}
+            />
+
+            <AcceptInviteWizard
+                show={showAcceptWizard}
+                onClose={() => setShowAcceptWizard(false)}
+                groupId={acceptedInvite?.group_id}
+                groupName={acceptedInvite?.group_name}
+                userId={userId}
             />
         </Container>
     );

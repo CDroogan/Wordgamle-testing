@@ -193,7 +193,7 @@ function CreateGroupWizard({ show, onClose, isFirstGroup, onCreated, userId }) {
     return (
       <WizardSuccess
         groupName={groupName}
-        isFirstGroup={isFirstGroup}
+        message={`Your ${isFirstGroup ? 'first' : 'new'} WordGAMLE group is created.`}
         onBack={() => setStep('members')}
         onClose={handleExit}
         onContinue={handleExit}
