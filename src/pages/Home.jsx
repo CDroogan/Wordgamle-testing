@@ -162,16 +162,18 @@ function Home() {
         ? `${userAuthData.firstname} ${userAuthData.lastname}`
         : 'A friend';
 
-        const message = `${fullName} has invited you to create an account on WordGAMLE.com\n\n👉 Enter ‘Casa’ (case sensitive) to get into the site!\n${frontendURL}`;
+        const message = `${fullName} has invited you to create an account on WordGAMLE.com\n\n👉 Enter ‘Casa’ (case sensitive) to get into the site!`;
 
-        // Everything goes in `text` alone (no separate `url` field) - on
-        // Desktop, navigator.share() hands off to the OS's native Share
-        // panel, whose "Copy" action is known to copy only `url` and drop
-        // `text`, which is why Desktop was producing just the bare link
-        // instead of the full message that Mobile share targets show.
+        // Keep `text` and `url` separate: Windows' native Share panel
+        // integrations (WhatsApp, Outlook, Teams, ...) read `url` to fill
+        // in the shared link and fail to populate anything without it.
+        // Its own "Copy" tile is simply a "copy link" action by OS design
+        // (same as any other site's share button on Windows) - it only
+        // ever copies `url`, with no way for a web page to change that.
         const shareData = {
             title: 'Join WordGAMLE!',
             text: message,
+            url: frontendURL,
         };
 
         if (navigator.share) {
@@ -184,7 +186,7 @@ function Home() {
             }
         } else {
             try {
-            await navigator.clipboard.writeText(message);
+            await navigator.clipboard.writeText(`${message}\n${shareData.url}`);
             alert('Invite message copied to clipboard!');
             } catch (err) {
             alert('Could not copy. Please share manually.');
