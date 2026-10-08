@@ -295,21 +295,27 @@ const handleInviteFriends = async () => {
                   ) : (
                     <>
                       <div>
-                        <img
-                            src={
-                                userData.avatar && !avatarFailed
-                                    ? `${baseURL}/user/uploads/${userData.avatar}`
-                                    : `${baseURL}/user/uploads/default_avatar.png`
-                            }
-                            alt="Profile"
-                            className="rounded-circle mb-1"
-                            style={{ width: '35px', height: '35px', objectFit: 'cover' }}
-                            onError={() => setAvatarFailed(true)}
-                        />
-                        <p className='fs-4 m-0 cwd-edit-profile' onClick={() => editUser(userData.name, userData.username, userData.email, userData.id, userData.avatar, true)}>
-                          {userData.username}
-                        </p>
-                        <p>{userData.email}</p>
+                        <div
+                          role="button"
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => editUser(userData.name, userData.username, userData.email, userData.id, userData.avatar, true)}
+                        >
+                          <img
+                              src={
+                                  userData.avatar && !avatarFailed
+                                      ? `${baseURL}/user/uploads/${userData.avatar}`
+                                      : `${baseURL}/user/uploads/default_avatar.png`
+                              }
+                              alt="Profile"
+                              className="rounded-circle mb-1"
+                              style={{ width: '35px', height: '35px', objectFit: 'cover' }}
+                              onError={() => setAvatarFailed(true)}
+                          />
+                          <p className='fs-4 m-0 cwd-edit-profile'>
+                            {userData.username}
+                          </p>
+                          <p>{userData.email}</p>
+                        </div>
                         <div className="user-profile-button d-flex justify-content-center gap-2 mt-2">
                           <Button onClick={() => editUser(userData.name, userData.username, userData.email, userData.id, true)}>Edit</Button>
                           <Button onClick={logout}>Logout</Button>
