@@ -3,8 +3,9 @@ import { Modal, Button, Form } from "react-bootstrap";
 import Axios from "axios";
 import { toast } from 'react-toastify';
 import Select from "react-select";
+import { shareText } from '../../utils/inviteFriends';
 
-const AddMembers = ({ showForm, handleFormClose, groupName, groupId, existingMembers = [], onBack }) => {
+const AddMembers = ({ showForm, handleFormClose, groupName, groupId, existingMembers = [], onBack, allowNewGamlerInvite = false }) => {
   const baseURL = import.meta.env.VITE_BASE_URL;
   const [groups, setGroups] = useState([]);
   const [users, setUsers] = useState([]);
@@ -12,9 +13,14 @@ const AddMembers = ({ showForm, handleFormClose, groupName, groupId, existingMem
   const [selectedCaptain, setSelectedCaptain] = useState("");
   const [selectedMembers, setSelectedMembers] = useState([]);
   const [searchInput, setSearchInput] = useState("");
+  const [newGamlerName, setNewGamlerName] = useState("");
+  const [hasSentOnce, setHasSentOnce] = useState(false);
   const userAuthData = JSON.parse(localStorage.getItem('auth')) || {};
   const loggedInUserId = String(userAuthData.id || "");
   const loggedInUsername = userAuthData.username || "";
+  const inviterFullName = userAuthData.firstname && userAuthData.lastname
+    ? `${userAuthData.firstname} ${userAuthData.lastname}`
+    : (loggedInUsername || 'A friend');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -69,27 +75,57 @@ const AddMembers = ({ showForm, handleFormClose, groupName, groupId, existingMem
   const frontendBaseUrl = window.location.origin;
 
   const handleSendInvitation = async () => {
-    if (selectedMembers.length === 0) {
-      toast.error("Please select a group and at least one member.");
+    const trimmedNewGamlerName = newGamlerName.trim();
+    const wantsNewGamlerInvite = allowNewGamlerInvite && trimmedNewGamlerName !== '';
+
+    if (selectedMembers.length === 0 && !wantsNewGamlerInvite) {
+      toast.error("Please select at least one existing Gamler, or enter a name to invite someone new.");
       return;
     }
+
     setLoading(true);
     try {
-      const invitations = selectedMembers.map(member => ({
-        group_id: groupId,
-        group_name: groupName,
-        invited_user_id: member.value,
-        invited_user_name: member.label,
-        frontendBaseUrl
-      }));
+      if (wantsNewGamlerInvite) {
+        const res = await Axios.post(`${baseURL}/groups/create-site-invite.php`, {
+          group_id: groupId,
+          invited_by_user_id: loggedInUserId,
+          invited_name: trimmedNewGamlerName,
+        });
 
-      await Promise.all(invitations.map(invite =>
-        Axios.post(`${baseURL}/groups/send-invite.php`, invite)
-      ));
+        if (res.data.status === 'success') {
+          // Greet by first word only ("Jay Droogan" -> "Jay") - a full
+          // name in a greeting reads like a form letter.
+          const firstWord = trimmedNewGamlerName.split(' ')[0];
+          const inviteUrl = `${frontendBaseUrl}/register?invite_token=${res.data.token}`;
+          const message = `Hi ${firstWord}! ${inviterFullName} has invited you to create an account and join "${groupName}" on WordGAMLE!\n\n👉 Enter ‘Casa’ (case sensitive) to get into the site and use this personalized link to sign-up: ${inviteUrl}`;
+          await shareText(message);
+        } else {
+          toast.error(res.data.message || "Failed to create invite link.");
+        }
+      }
+
+      if (selectedMembers.length > 0) {
+        const invitations = selectedMembers.map(member => ({
+          group_id: groupId,
+          group_name: groupName,
+          invited_user_id: member.value,
+          invited_user_name: member.label,
+          frontendBaseUrl
+        }));
+
+        await Promise.all(invitations.map(invite =>
+          Axios.post(`${baseURL}/groups/send-invite.php`, invite)
+        ));
+      }
 
       toast.success("Invitations sent successfully!");
       setSelectedMembers([]);
-      handleFormClose();
+      setNewGamlerName('');
+      if (allowNewGamlerInvite) {
+        setHasSentOnce(true);
+      } else {
+        handleFormClose();
+      }
     } catch (error) {
       toast.error("Failed to send invitations.");
     }
@@ -121,8 +157,17 @@ const AddMembers = ({ showForm, handleFormClose, groupName, groupId, existingMem
             <Form.Control type="text" readOnly value={loggedInUsername} />
           </Form.Group>
 
+          {allowNewGamlerInvite && hasSentOnce && (
+            <Form.Group className="mb-3">
+              <p className="fw-bold mb-2">Do you want to add any additional Group Members?</p>
+              <Button variant="primary" onClick={handleFormClose}>
+                No, Complete Group Set-Up
+              </Button>
+            </Form.Group>
+          )}
+
           <Form.Group className="mb-3">
-            <Form.Label>Invite Group Members</Form.Label>
+            <Form.Label>Invite Group Members{allowNewGamlerInvite ? ' - Existing Gamlers' : ''}</Form.Label>
             <Select
               isMulti
               options={filteredUsers
@@ -153,6 +198,25 @@ const AddMembers = ({ showForm, handleFormClose, groupName, groupId, existingMem
               * Only active users are shown. Paused users are not available for selection.
             </div>
           </Form.Group>
+
+          {allowNewGamlerInvite && (
+            <Form.Group className="mb-3">
+              <Form.Label>Invite Someone to Join WordGAMLE and your Group</Form.Label>
+              <div className="text-muted mb-2" style={{ fontSize: '0.85rem' }}>
+                These invitations will need to be sent one at a time.
+              </div>
+              <Form.Label className="mb-1">Name:</Form.Label>
+              <Form.Control
+                type="text"
+                value={newGamlerName}
+                onChange={(e) => setNewGamlerName(e.target.value)}
+                placeholder="Enter their name"
+              />
+              <div className="text-muted mt-1" style={{ fontSize: '0.8rem' }}>
+                Your friend will be able to change this at sign-up.
+              </div>
+            </Form.Group>
+          )}
 
           <Button variant="primary" onClick={handleSendInvitation} disabled={loading}>
             {loading ? (

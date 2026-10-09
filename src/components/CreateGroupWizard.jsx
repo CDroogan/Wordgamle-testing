@@ -185,6 +185,7 @@ function CreateGroupWizard({ show, onClose, isFirstGroup, onCreated, userId }) {
         groupName={groupName}
         groupId={groupId}
         existingMembers={[String(userId)]}
+        allowNewGamlerInvite
       />
     );
   }

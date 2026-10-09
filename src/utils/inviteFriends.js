@@ -1,21 +1,12 @@
-// Shared "Invite Friends" share-sheet logic used by both the Home page's
-// clickable link (Home.jsx) and the header menu's button (Headerbar.jsx),
-// so the two entry points can never drift apart.
-export async function shareInviteFriends({ userId, firstName, lastName }) {
-    const frontendURL = window.location.origin;
-    const fullName = firstName && lastName ? `${firstName} ${lastName}` : 'A friend';
-    const registerUrl = userId
-        ? `${frontendURL}/register?invited_by=${btoa(userId)}`
-        : frontendURL;
-
-    const message = `${fullName} has invited you to create an account on WordGAMLE!\n\n👉 Enter ‘Casa’ (case sensitive) to get into the site. ${registerUrl}`;
-
-    // The link is already embedded in `message` above, so shareData
-    // carries only `text` - a separate `url` field would make Mobile share
-    // targets append the link a second time, and Windows' native Share
-    // panel only accepts `url` and silently drops `text` anyway, which is
-    // why Desktop skips navigator.share() entirely below.
-    const shareData = { title: 'Join WordGAMLE!', text: message };
+// Shares a block of text via the OS share sheet on mobile devices, or
+// copies it to the clipboard on Desktop. Desktop skips navigator.share()
+// entirely even when the browser supports it, because Windows' native
+// Share panel only accepts a separate `url` field and silently drops
+// `text` - no combination of fields can make it show a full message, so
+// copying straight to the clipboard is the only way to guarantee Desktop
+// gets the complete text every time.
+export async function shareText(message, title = 'Join WordGAMLE!') {
+    const shareData = { title, text: message };
     const isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 
     if (isMobileDevice && navigator.share) {
@@ -32,4 +23,19 @@ export async function shareInviteFriends({ userId, firstName, lastName }) {
             alert('Could not copy. Please share manually.');
         }
     }
+}
+
+// Shared "Invite Friends" (site-only, no group) share-sheet logic used by
+// both the Home page's clickable link (Home.jsx) and the header menu's
+// button (Headerbar.jsx), so the two entry points can never drift apart.
+export async function shareInviteFriends({ userId, firstName, lastName }) {
+    const frontendURL = window.location.origin;
+    const fullName = firstName && lastName ? `${firstName} ${lastName}` : 'A friend';
+    const registerUrl = userId
+        ? `${frontendURL}/register?invited_by=${btoa(userId)}`
+        : frontendURL;
+
+    const message = `${fullName} has invited you to create an account on WordGAMLE!\n\n👉 Enter ‘Casa’ (case sensitive) to get into the site. ${registerUrl}`;
+
+    await shareText(message);
 }

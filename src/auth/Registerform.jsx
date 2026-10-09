@@ -30,6 +30,7 @@ function Registerform() {
     const groupId = encryptedId ? atob(encryptedId) : null;
     const encryptedInviterId = params.get('invited_by');
     const inviterId = encryptedInviterId ? atob(encryptedInviterId) : null;
+    const inviteToken = params.get('invite_token');
     const [inviter, setInviter] = useState(null);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setConfirmShowPassword] = useState(false);
@@ -83,6 +84,34 @@ function Registerform() {
           })
           .catch(() => {});
       }, [inviterId, baseURL]);
+
+      // A group-site-invite token resolves to the same {username, avatar,
+      // first_name, last_name} shape as get-user-by-id.php above, so it
+      // reuses the exact same "inviter" banner - only this flow also
+      // carries an (optional) suggested name to pre-fill below.
+      useEffect(() => {
+        if (!inviteToken) return;
+        Axios.get(`${baseURL}/groups/get-site-invite.php`, { params: { token: inviteToken } })
+          .then((res) => {
+            if (res.data.status === 'success') {
+              const invite = res.data.invite;
+              setInviter({
+                username: invite.username,
+                avatar: invite.avatar,
+                first_name: invite.first_name,
+                last_name: invite.last_name,
+              });
+              if (invite.invited_name) {
+                const nameParts = invite.invited_name.trim().split(' ');
+                setfirstName(nameParts[0] || '');
+                setlastName(nameParts.slice(1).join(' '));
+              }
+            } else {
+              toast.error(res.data.message || 'This invite link is no longer valid.');
+            }
+          })
+          .catch(() => {});
+      }, [inviteToken, baseURL]);
 
     useEffect(() => {
         const USER_AUTH_DATA = JSON.parse(localStorage.getItem("auth"));
@@ -218,6 +247,9 @@ function Registerform() {
         if (groupId) {
             formData.append('groupId', groupId);
         }
+        if (inviteToken) {
+            formData.append('inviteToken', inviteToken);
+        }
         try {
             const res = await Axios.post(`${baseURL}/user/create-user.php`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
@@ -273,7 +305,11 @@ function Registerform() {
                     console.log(loginRes.data);
                     if (loginRes.data.status === 'success' && loginRes.data) {
                         localStorage.setItem('auth', JSON.stringify(loginRes.data));
-                        navigate('/');
+                        // Landing on the Profile page (instead of Home) puts
+                        // the new pending group invite - and its Accept
+                        // button - directly in front of them, rather than
+                        // leaving them to notice it on their own later.
+                        navigate(inviteToken ? '/edit-profile' : '/');
                     } else {
                         toast.error("Auto-login failed. Please log in manually.",{ autoClose: 3000 });
                         navigate('/login');
