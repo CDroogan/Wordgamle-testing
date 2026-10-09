@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Form, Button, InputGroup } from 'react-bootstrap';
 import Axios from "axios";
 import { toast } from 'react-toastify';
-import logo from '../Logo.png';
+import WordGamleLogo from '../WordleTitleLogo.png';
 import { useNavigate } from "react-router-dom";
 import { useLocation } from 'react-router-dom';
 
@@ -303,12 +303,12 @@ function Registerform() {
                     </div>
                 ) : (
                     <Col md={6}>
-                        <img src={logo} alt="logo" className='d-block m-auto' />
+                        <img src={WordGamleLogo} alt="WordGAMLE" className='d-block m-auto' style={{ maxWidth: '220px' }} />
 
                         {inviter && (
                             <div className="text-center mb-3">
-                                <h5 className="fw-bold">Welcome to WordGAMLE!</h5>
-                                <p className="mb-1">
+                                <h5 className="fw-bold mb-3">Welcome to WordGAMLE!</h5>
+                                <p className="mb-3">
                                     <strong>{inviter.username}</strong>{' '}
                                     <img
                                         src={inviter.avatar ? `${baseURL}/user/uploads/${inviter.avatar}` : `${baseURL}/user/uploads/default_avatar.png`}
