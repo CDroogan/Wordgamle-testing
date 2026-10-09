@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Form, Button, InputGroup, Modal, Carousel } from 'react-bootstrap';
-import { FaEye, FaEyeSlash } from 'react-icons/fa';
+import { Container, Row, Col, Form, Button, Modal, Carousel } from 'react-bootstrap';
 import { useNavigate } from "react-router-dom";
 import { Link } from 'react-router-dom';
 import '@fortawesome/fontawesome-free/css/all.min.css';
@@ -34,11 +33,6 @@ function Home() {
      const userId = userAuthData?.id;
     const navigate = useNavigate();
     const [show, setShow] = useState(false);
-    // Password Protection State
-    const [password, setPassword] = useState('');
-    const [showPassword, setShowPassword] = useState(false);
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const correctPassword = "Casa"; // Change this
     const location = useLocation();
     const params = new URLSearchParams(location.search);
     const encryptedId = params.get('group_id');
@@ -92,23 +86,6 @@ function Home() {
 
 
 
-
-    // Check if the user already entered the password
-    useEffect(() => {
-        if (localStorage.getItem("pageUnlocked") === "true") {
-            setIsAuthenticated(true);
-        }
-    }, []);
-
-    const handlePasswordSubmit = (e) => {
-        e.preventDefault();
-        if (password === correctPassword) {
-            setIsAuthenticated(true);
-            localStorage.setItem("pageUnlocked", "true"); // Store authentication
-        } else {
-            toast.error("Incorrect password!");
-        }
-    };
 
     const handleNavigation = (link) => {
         navigate(`/${link}`);
@@ -219,7 +196,7 @@ function Home() {
         Axios.get(`${baseURL}/user/get-day-winner.php`, { params })
         }, [userAuthData?.id]);
 
-    return isAuthenticated ? (
+    return (
         <Container className="login-section">
             <Row className="align-content-center justify-content-center text-center">
                 <Col md={6} className='bg-white px-3 py-3 text-center'>
@@ -393,33 +370,7 @@ function Home() {
                     </Row>
                 </Col>
             </Row>
-            
-        </Container>
-        
-    ) : (
-        <Container className="login-section">
-            <Row className="align-content-center justify-content-center">
-                <Col md={6} className='bg-white px-3 py-3 text-center'>
-                    <p className='fs-4 text-center'>Enter Password to Access</p>
-                    <Form onSubmit={handlePasswordSubmit}>
-                        <InputGroup className="my-3">
-                            <Form.Control
-                                type={showPassword ? 'text' : 'password'}
-                                placeholder="Enter password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                            />
-                            <InputGroup.Text
-                                onClick={() => setShowPassword(!showPassword)}
-                                style={{ cursor: 'pointer' }}
-                            >
-                                {showPassword ? <FaEyeSlash /> : <FaEye />}
-                            </InputGroup.Text>
-                        </InputGroup>
-                        <Button variant="primary" type="submit">Submit</Button>
-                    </Form>
-                </Col>
-            </Row>
+
         </Container>
     );
 }
