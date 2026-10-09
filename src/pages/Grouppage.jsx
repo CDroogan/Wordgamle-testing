@@ -194,6 +194,7 @@ function GroupPage() {
                 groupName={group.name}
                 groupId={group.id}
                 existingMembers={existingMembers}
+                allowNewGamlerInvite
             />
         </Container>
     );

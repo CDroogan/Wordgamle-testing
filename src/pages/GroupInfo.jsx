@@ -509,6 +509,7 @@ function GroupInfo() {
                 handleFormClose={() => setShowMemberForm(false)}
                 groupName={group.name}
                 groupId={group.id}
+                allowNewGamlerInvite
             />
         </Container>
     );

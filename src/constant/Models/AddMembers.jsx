@@ -165,7 +165,7 @@ const AddMembers = ({ showForm, handleFormClose, groupName, groupId, existingMem
             <Form.Group className="mb-3">
               <p className="fw-bold mb-2">Do you want to add any additional Group Members?</p>
               <Button variant="primary" onClick={handleFormClose}>
-                No, Complete Group Set-Up
+                No, I'm Done Adding Members
               </Button>
             </Form.Group>
           )}
