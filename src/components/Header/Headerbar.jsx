@@ -7,6 +7,7 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
 import axios from 'axios';
 import GroupInvites from '../../pages/GroupInvites';
 import FeedbackButton from '../../pages/FeedbackButton';
+import { shareInviteFriends } from '../../utils/inviteFriends';
 // import useNotificationSettings from '../../pages/hook/useNotificationSettings';
 
 
@@ -138,40 +139,11 @@ const Headerbar = () => {
       document.removeEventListener('mousedown', handleOutsideClick);
     };
   }, [expanded]);
-const handleInviteFriends = async () => {
-  const frontendURL = window.location.origin;
-  const encryptedUserId = btoa(userId);
-  const useridpath = `/?user_id=${encryptedUserId}`;
-  const fullUrl = `${frontendURL}${useridpath}`;
-  const fullName = userData.first_name && userData.last_name
-  ? `${userData.first_name} ${userData.last_name}`
-  : 'A friend';
-
-  const message = `${fullName} has invited you to create an account on WordGAMLE.com\n\n👉 Enter ‘Casa’ (case sensitive) to get into the site!`;
-
-  const shareData = {
-    title: 'Join WordGAMLE!',
-    text: message,
-    url: fullUrl,
-  };
-
-  if (navigator.share) {
-   
-    try {
-      await navigator.share(shareData);
-      
-    } catch (err) {
-      console.error('Share failed:', err);
-    }
-  } else {
-    try {
-      await navigator.clipboard.writeText(`${message}\n${shareData.url}`);
-      alert('Invite message copied to clipboard!');
-    } catch (err) {
-      alert('Could not copy. Please share manually.');
-    }
-  }
-};
+const handleInviteFriends = () => shareInviteFriends({
+  userId,
+  firstName: userData.first_name,
+  lastName: userData.last_name,
+});
 
   // The profile button is rendered in one of two spots depending on isDesktop
   // (see the two usages below) rather than duplicated, so it keeps a single

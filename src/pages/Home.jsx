@@ -26,6 +26,7 @@ import enhancedStatsPopupImg from "../assets/homepage-popups/enhanced-stats.png"
 import gamleScorePopupImg from "../assets/homepage-popups/gamle-score.jpg";
 import trackResultsPopupImg from "../assets/homepage-popups/track-results.jpg";
 import WordGamleLogo from '../WordleTitleLogo.png';
+import { shareInviteFriends } from '../utils/inviteFriends';
 
 function Home() {
     const baseURL = import.meta.env.VITE_BASE_URL;
@@ -156,47 +157,11 @@ function Home() {
 
     const parts = cleanText.split('[Invite Friends]');
 
-    const inviteFriends = async () => {
-        const frontendURL = window.location.origin;
-        const fullName = userAuthData.firstname && userAuthData.lastname
-        ? `${userAuthData.firstname} ${userAuthData.lastname}`
-        : 'A friend';
-
-        const message = `${fullName} has invited you to create an account on WordGAMLE!\n\n👉 Enter ‘Casa’ (case sensitive) to get into the site. ${frontendURL}`;
-
-        // The link is already embedded in `message` above, so shareData
-        // carries only `text` - a separate `url` field here would make
-        // Mobile share targets append the link a second time.
-        const shareData = {
-            title: 'Join WordGAMLE!',
-            text: message,
-        };
-
-        // Only hand off to the OS's native Share panel on an actual mobile
-        // device. On Windows, that panel's share targets (WhatsApp, Copy,
-        // ...) only accept a `url` field and silently drop `text` - no
-        // combination of shareData fields can make them show the full
-        // message, so Desktop instead copies the complete message straight
-        // to the clipboard, same as the no-navigator.share fallback below.
-        const isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-
-        if (isMobileDevice && navigator.share) {
-
-            try {
-            await navigator.share(shareData);
-
-            } catch (err) {
-            console.error('Share failed:', err);
-            }
-        } else {
-            try {
-            await navigator.clipboard.writeText(message);
-            alert('Invite message copied to clipboard!');
-            } catch (err) {
-            alert('Could not copy. Please share manually.');
-            }
-        }
-    };
+    const inviteFriends = () => shareInviteFriends({
+        userId,
+        firstName: userAuthData.firstname,
+        lastName: userAuthData.lastname,
+    });
         const today = new Date();
         const yesterday = new Date();
         yesterday.setDate(today.getDate() - 1);

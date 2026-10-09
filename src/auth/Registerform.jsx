@@ -28,6 +28,9 @@ function Registerform() {
     const params = new URLSearchParams(location.search);
     const encryptedId = params.get('group_id');
     const groupId = encryptedId ? atob(encryptedId) : null;
+    const encryptedInviterId = params.get('invited_by');
+    const inviterId = encryptedInviterId ? atob(encryptedInviterId) : null;
+    const [inviter, setInviter] = useState(null);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setConfirmShowPassword] = useState(false);
     const [registrationformText, setRegistrationFormText] = useState({
@@ -71,7 +74,16 @@ function Registerform() {
             console.error('Error fetching homepage text:', err);
           });
       }, [baseURL]);
-    
+
+      useEffect(() => {
+        if (!inviterId) return;
+        Axios.get(`${baseURL}/user/get-user-by-id.php`, { params: { user_id: inviterId } })
+          .then((res) => {
+            if (res.data.success) setInviter(res.data.user);
+          })
+          .catch(() => {});
+      }, [inviterId, baseURL]);
+
     useEffect(() => {
         const USER_AUTH_DATA = JSON.parse(localStorage.getItem("auth"));
         if (USER_AUTH_DATA?.email) {
@@ -292,6 +304,26 @@ function Registerform() {
                 ) : (
                     <Col md={6}>
                         <img src={logo} alt="logo" className='d-block m-auto' />
+
+                        {inviter && (
+                            <div className="text-center mb-3">
+                                <h5 className="fw-bold">Welcome to WordGAMLE!</h5>
+                                <p className="mb-1">
+                                    <strong>{inviter.username}</strong>{' '}
+                                    <img
+                                        src={inviter.avatar ? `${baseURL}/user/uploads/${inviter.avatar}` : `${baseURL}/user/uploads/default_avatar.png`}
+                                        alt=""
+                                        width="24"
+                                        height="24"
+                                        className="rounded-circle"
+                                        style={{ objectFit: 'cover' }}
+                                    />
+                                    {' '}({inviter.first_name} {inviter.last_name}) invited you to create an account on WordGAMLE.
+                                </p>
+                                <p className="fw-bold mb-0">Sign up here and Get Your GAMLE on!</p>
+                            </div>
+                        )}
+
                         <h5>Create New Account</h5>
                         <Form encType="multipart/form-data" onSubmit={signUp}>
                         <Row>
