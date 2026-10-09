@@ -320,7 +320,7 @@ function Registerform() {
                                     />
                                     {' '}({inviter.first_name} {inviter.last_name}) invited you to create an account on WordGAMLE.
                                 </p>
-                                <p className="fw-bold mb-0">Sign up here and Get Your GAMLE on!</p>
+                                <p className="fw-bold mb-4">Sign up here and Get Your GAMLE on!</p>
                             </div>
                         )}
 
