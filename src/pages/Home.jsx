@@ -162,7 +162,7 @@ function Home() {
         ? `${userAuthData.firstname} ${userAuthData.lastname}`
         : 'A friend';
 
-        const message = `${fullName} has invited you to create an account on WordGAMLE.com\n\n👉 Enter ‘Casa’ (case sensitive) to get into the site! ${frontendURL}`;
+        const message = `${fullName} has invited you to create an account on WordGAMLE!\n\n👉 Enter ‘Casa’ (case sensitive) to get into the site. ${frontendURL}`;
 
         // The link is already embedded in `message` above, so shareData
         // carries only `text` - a separate `url` field here would make
