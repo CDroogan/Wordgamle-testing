@@ -523,6 +523,7 @@ function Registerform() {
                                             onChange={(e) => setPassword(e.target.value)}
                                             onBlur={() => handleBlur('password')}
                                             placeholder={registrationformText.password_placeholder}
+                                            autoComplete="new-password"
                                         />
                                         <InputGroup.Text style={{ cursor: 'pointer' }} onClick={togglePasswordVisibility}>
                                             <i className={showPassword ? "fa fa-eye-slash" : "fa fa-eye"}></i>
@@ -553,6 +554,7 @@ function Registerform() {
                                         onChange={(e) => setConfirmpassword(e.target.value)}
                                         onBlur={() => handleBlur('confirmpassword')}
                                         placeholder={registrationformText.confirm_password_placeholder}
+                                        autoComplete="new-password"
                                         />
                                         <InputGroup.Text style={{ cursor: 'pointer' }} onClick={toggleConfirmPasswordVisibility}>
                                             <i className={showConfirmPassword ? "fa fa-eye-slash" : "fa fa-eye"}></i>
