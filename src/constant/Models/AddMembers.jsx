@@ -97,7 +97,11 @@ const AddMembers = ({ showForm, handleFormClose, groupName, groupId, existingMem
           // name in a greeting reads like a form letter.
           const firstWord = trimmedNewGamlerName.split(' ')[0];
           const inviteUrl = `${frontendBaseUrl}/register?invite_token=${res.data.token}`;
-          const message = `Hi ${firstWord}! ${inviterFullName} has invited you to create an account and join "${groupName}" on WordGAMLE!\n\n👉 Enter ‘Casa’ (case sensitive) to get into the site and use this personalized link to sign-up: ${inviteUrl}`;
+          // This link already bypasses the site's Casa password gate (see
+          // Layout.jsx's always-unlocked routes), so the note below is
+          // purely informational - for if this message gets forwarded on
+          // its own, without the link.
+          const message = `Hi ${firstWord}! ${inviterFullName} has invited you to create an account and join "${groupName}" on WordGAMLE!\n${inviteUrl}\n\n👉 Note that WordGAMLE is password protected. Anyone who logs on without an Invite from an existing Gamler will need to enter ‘Casa’ (case sensitive) to gain access.`;
           await shareText(message);
         } else {
           toast.error(res.data.message || "Failed to create invite link.");

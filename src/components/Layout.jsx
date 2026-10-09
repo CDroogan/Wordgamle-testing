@@ -4,10 +4,14 @@ import Header from './Header/Headerbar';
 import CasaGate from './CasaGate';
 import { SITE_PASSWORD_ENABLED } from '../config/sitePassword';
 
-// Login is the one route that must stay reachable while locked - it's how
-// someone with a real account (but an unrecognized browser/device) gets
-// in without needing to know the site password at all.
-const ALWAYS_UNLOCKED_ROUTES = ['/login'];
+// Login must stay reachable while locked - it's how someone with a real
+// account (but an unrecognized browser/device) gets in without needing to
+// know the site password at all. Register must too, so an Invite Friends
+// or group-invite link takes its recipient straight to the signup form
+// rather than making them also know Casa (the invite message itself now
+// notes the site is password-protected, in case it's forwarded without
+// the link).
+const ALWAYS_UNLOCKED_ROUTES = ['/login', '/register'];
 
 const isAlreadyUnlocked = () => {
   if (!SITE_PASSWORD_ENABLED) return true;

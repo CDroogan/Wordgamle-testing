@@ -35,7 +35,12 @@ export async function shareInviteFriends({ userId, firstName, lastName }) {
         ? `${frontendURL}/register?invited_by=${btoa(userId)}`
         : frontendURL;
 
-    const message = `${fullName} has invited you to create an account on WordGAMLE!\n\n👉 Enter ‘Casa’ (case sensitive) to get into the site. ${registerUrl}`;
+    // This link already bypasses the site's Casa password gate (see
+    // Layout.jsx's always-unlocked routes), so the note below is purely
+    // informational - for if this message gets forwarded on its own,
+    // without the link, to someone who then tries to visit the site
+    // directly.
+    const message = `${fullName} has invited you to create an account on WordGAMLE!\n${registerUrl}\n\n👉 Note that WordGAMLE is password protected. Anyone who logs on without an Invite from an existing Gamler will need to enter ‘Casa’ (case sensitive) to gain access.`;
 
     await shareText(message);
 }
