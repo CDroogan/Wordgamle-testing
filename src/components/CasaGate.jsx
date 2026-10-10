@@ -48,7 +48,7 @@ function CasaGate({ onUnlock }) {
           </Form>
           <Button
             variant="primary"
-            className="mt-3 w-100"
+            className="mt-3"
             onClick={() => navigate('/login')}
           >
             Already have an account?<br />Log in HERE
