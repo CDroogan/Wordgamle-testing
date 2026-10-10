@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Modal, Button } from 'react-bootstrap';
 
-function FeedbackButton() {
+function FeedbackButton({ locked = false }) {
   const [show, setShow] = useState(false);
 
   return (
     <>
-      <Button className="custom-btn m-2" onClick={() => setShow(true)}>
+      <Button className="custom-btn m-2" onClick={() => { if (!locked) setShow(true); }} style={{ pointerEvents: locked ? 'none' : 'auto' }}>
         Feedback
       </Button>
 

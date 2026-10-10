@@ -51,7 +51,7 @@ function CasaGate({ onUnlock }) {
             className="mt-3 w-100"
             onClick={() => navigate('/login')}
           >
-            Already have an account? Log in HERE
+            Already have an account?<br />Log in HERE
           </Button>
         </Col>
       </Row>
