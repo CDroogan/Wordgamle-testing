@@ -254,7 +254,7 @@ function GroupInfo() {
                     style={{ flexWrap: 'nowrap' }}
                     >
                         {/* Avatar and username */}
-                        <Col xs={5} md={4} lg={4} className="text-center text-md-start">
+                        <Col xs={4} md={4} lg={4} className="text-center text-md-start">
                             <div onClick={() => handleShowProfile(member)} style={{ cursor: 'pointer' }}>
                                 <div style={{ position: 'relative', display: 'inline-block' }}>
                                     <img
@@ -292,7 +292,7 @@ function GroupInfo() {
                         </Col>
 
                         {/* Selected Games */}
-                        <Col xs={5}  md={6} lg={6}  className="text-start">
+                        <Col xs={4}  md={5} lg={5}  className="text-start">
                             <ul style={{ listStyleType: 'none', padding: 0, marginBottom: 0 }}>
                             {["Wordle", "Connections", "Phrazle", "Quordle", "Octordle"].map((game) => (
                                 <li key={game}>
@@ -309,7 +309,7 @@ function GroupInfo() {
                         {userId === captainid && (
                             <>
                         
-                            <Col xs={2} md={2} lg={2}  className="text-center">
+                            <Col xs={4} md={3} lg={3}  className="text-center">
                                 {member.member_id !== captainid && (
                                     <Button
                                         variant="danger"
@@ -330,7 +330,7 @@ function GroupInfo() {
 
                         {/* Change Preferences - only next to the viewer's own row */}
                         {member.member_id === userId && (
-                            <Col xs={2} md={2} lg={2} className="text-center">
+                            <Col xs={4} md={3} lg={3} className="text-center">
                                 <Button
                                     variant="primary"
                                     size="sm"
@@ -542,7 +542,7 @@ function GroupInfo() {
                     <Modal.Title>Change Preferences</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
-                    <MemberGameSelections leaderboardText={leaderboardText} />
+                    <MemberGameSelections leaderboardText={leaderboardText} bare />
                 </Modal.Body>
             </Modal>
         </Container>
