@@ -501,6 +501,22 @@ function GameFeed({ userId, baseURL, focusPostId }) {
     }
   };
 
+  const handleDeletePost = async (postId) => {
+    if (!window.confirm('Delete this post? This cannot be undone.')) return;
+    try {
+      const res = await Axios.post(`${baseURL}/gamefeed/delete-post.php`, { post_id: postId, user_id: userId });
+      if (res.data.success) {
+        setPosts((prev) => prev.filter((p) => p.id !== postId));
+        setEditingPostId(null);
+        setEditPostText('');
+      } else {
+        toast.error(res.data.error || 'Could not delete that post.');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to delete that post - please try again.');
+    }
+  };
+
   const startEditComment = (comment) => {
     setEditingCommentId(comment.id);
     setEditCommentText(comment.text || '');
@@ -591,9 +607,12 @@ function GameFeed({ userId, baseURL, focusPostId }) {
                 maxRows={12}
                 baseURL={baseURL}
               />
-              <div className="text-end mt-1">
-                <Button size="sm" variant="outline-secondary" className="me-2" onClick={cancelEditPost}>Cancel</Button>
-                <Button size="sm" variant="primary" onClick={() => handleSaveEditPost(post.id)}>Save</Button>
+              <div className="mt-1 d-flex justify-content-between">
+                <Button size="sm" variant="outline-danger" onClick={() => handleDeletePost(post.id)}>Delete Post</Button>
+                <div>
+                  <Button size="sm" variant="outline-secondary" className="me-2" onClick={cancelEditPost}>Cancel</Button>
+                  <Button size="sm" variant="primary" onClick={() => handleSaveEditPost(post.id)}>Save</Button>
+                </div>
               </div>
             </div>
           ) : (
