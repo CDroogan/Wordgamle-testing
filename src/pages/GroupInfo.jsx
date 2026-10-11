@@ -304,28 +304,24 @@ function GroupInfo() {
                             </ul>
                         </Col>
 
-                        {/* Remove button */}
-                        
-                        {userId === captainid && (
-                            <>
-                        
+                        {/* Remove button - captain viewing someone else's row.
+                            Mutually exclusive with Change Preferences below
+                            (which covers the viewer's own row, captain or
+                            not) so a captain's own row never renders both
+                            columns at once and overflows the row. */}
+                        {userId === captainid && member.member_id !== captainid && (
                             <Col xs={4} md={5} lg={5}  className="text-center">
-                                {member.member_id !== captainid && (
-                                    <Button
-                                        variant="danger"
-                                        size="sm"
-                                        onClick={() => {
-                                            setSelectedMemberId(member.member_id);
-                                            setShowRemoveConfirm(true);
-                                        }}
-                                    >
-                                        <FaTrash />
-                                    </Button>
-
-                                )}
+                                <Button
+                                    variant="danger"
+                                    size="sm"
+                                    onClick={() => {
+                                        setSelectedMemberId(member.member_id);
+                                        setShowRemoveConfirm(true);
+                                    }}
+                                >
+                                    <FaTrash />
+                                </Button>
                             </Col>
-
-                            </>
                         )}
 
                         {/* Change Preferences - only next to the viewer's own row */}
