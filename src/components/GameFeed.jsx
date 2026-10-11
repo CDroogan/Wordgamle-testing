@@ -58,6 +58,12 @@ function computeSpoilerDisplayTime(item) {
   return dayjs(Math.max(...graceEndTimes)).format('MMM D, h:mm A');
 }
 
+// A pasted Phrazle result carries a trailing "#phrazle" + link back to
+// the game - stripped the same way PhrazleStat.jsx and
+// PhrazleScoreByDate.jsx already strip it from personal stats, so a
+// Phrazle result pasted into a GameFeed post/comment reads the same way.
+const stripPhrazleLink = (text) => (text || '').replace(/#phrazle|https:\/\/solitaired\.com\/phrazle/g, '');
+
 // Purple circled "S" badge marking a Spoiler Alert post/comment - shown
 // in the same spot (sized and vertically aligned to match the author's
 // own avatar circle) whether the viewer is looking at the real content
@@ -594,7 +600,7 @@ function GameFeed({ userId, baseURL, focusPostId }) {
             <>
               {post.content && (
                 <div className="mb-2" style={{ whiteSpace: 'pre-wrap' }}>
-                  {renderWithMentions(post.content, handleMentionClick)}
+                  {renderWithMentions(stripPhrazleLink(post.content), handleMentionClick)}
                 </div>
               )}
 
@@ -664,7 +670,7 @@ function GameFeed({ userId, baseURL, focusPostId }) {
                       </div>
                     ) : (
                       <>
-                        <span>{renderWithMentions(c.text, handleMentionClick)}</span>
+                        <span>{renderWithMentions(stripPhrazleLink(c.text), handleMentionClick)}</span>
                         {c.image && (
                           <div className="mt-1">
                             <img src={`${baseURL}/gamefeed/uploads/${c.image}`} alt="" className="img-fluid rounded" style={{ maxHeight: '200px' }} />
