@@ -157,7 +157,8 @@ const handleInviteFriends = () => shareInviteFriends({
             alt="User Avatar"
             width="30"
             height="30"
-            className="img-fluid user-avatar rounded-circle mb-2"
+            className="user-avatar rounded-circle mb-2"
+            style={{ objectFit: 'cover' }}
             onError={() => setAvatarFailed(true)}
           />
 

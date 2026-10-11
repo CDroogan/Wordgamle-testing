@@ -179,15 +179,46 @@ function UserProfile() {
         }
     };
 
+    // Crop Image is the one and only save action for a new photo - nothing
+    // else on this page persists it, so it must save immediately rather
+    // than waiting for a separate "Update Profile" click buried in the
+    // Profile Settings modal. That disconnect (introduced when Profile
+    // Settings was split into its own modal) is what caused newly cropped
+    // photos to silently never actually save.
     const cropImage = () => {
         const cropper = cropperRef.current?.cropper;
         if (cropper && cropper.getCroppedCanvas()) {
-            cropper.getCroppedCanvas().toBlob((blob) => {
-                if (blob) {
-                    setAvatar(blob);
-                    setPreviewUrl(URL.createObjectURL(blob));
-                    setRawImage(null);
-                    setShowCropModal(false);
+            cropper.getCroppedCanvas().toBlob(async (blob) => {
+                if (!blob) return;
+
+                const objectUrl = URL.createObjectURL(blob);
+                setAvatar(blob);
+                setPreviewUrl(objectUrl);
+                setRawImage(null);
+                setShowCropModal(false);
+
+                try {
+                    const formData = new FormData();
+                    formData.append("id", userData.id);
+                    formData.append("firstName", firstName);
+                    formData.append("lastName", lastName);
+                    formData.append("username", username);
+                    formData.append("phone", phone);
+                    formData.append("avatar", blob);
+
+                    const response = await Axios.post(`${baseURL}/user/edit-user.php`, formData);
+
+                    if (response.data.status === "success") {
+                        toast.success("Profile picture updated!");
+                        localStorage.setItem("auth", JSON.stringify({
+                            ...USER_AUTH_DATA,
+                            avatar: `${response.data.avatar || objectUrl}?t=${Date.now()}`,
+                        }));
+                    } else {
+                        toast.error(response.data.message || "Failed to update profile picture");
+                    }
+                } catch (error) {
+                    toast.error("Failed to update profile picture");
                 }
             });
         }
