@@ -46,7 +46,7 @@ function Resetpwd() {
                                 <div className="col-sm-8 col-xl-12 my-4">
                                     {success ? (
                                         <Alert variant="success">
-                                            ✅ Reset link has been sent to your email!
+                                            ✅ Reset link has been sent to your email address.
                                         </Alert>
                                     ) : (
                                         <form onSubmit={resetPwd}>
@@ -59,7 +59,7 @@ function Resetpwd() {
                                                         onChange={(e) => setEmail(e.target.value)}
                                                         id="login-email"
                                                         name="email"
-                                                        placeholder="Enter the email"
+                                                        placeholder="Enter the email address"
                                                         disabled={loading}
                                                     />
                                                 </div>
