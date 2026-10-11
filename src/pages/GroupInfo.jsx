@@ -14,6 +14,7 @@ import InviteGroupandSite from './InviteGroupAndSite';
 import GroupDeletePreference from '../constant/Models/GroupDeletePreference';
 import RemoveMemberConfirmModal from '../constant/Models/RemoveMemberConfirmModal';
 import AddMembers from '../constant/Models/AddMembers';
+import MemberGameSelections from './MemberGameSelections';
 
 function GroupInfo() {
     const baseURL = import.meta.env.VITE_BASE_URL;
@@ -33,6 +34,8 @@ function GroupInfo() {
     const userId = USER_AUTH_DATA?.id;
     const [invites, setInvites] = useState([]);
     const [showProfile, setShowProfile] = useState(false);
+    const [showChangePreferences, setShowChangePreferences] = useState(false);
+    const [leaderboardText, setLeaderboardText] = useState({});
     const [selectedMember, setSelectedMember] = useState(null);
     const [showInviteDeleteModal, setShowInviteDeleteModal] = useState(false);
     const [selectedInviteId, setSelectedInviteId] = useState(null);
@@ -42,6 +45,12 @@ function GroupInfo() {
     useEffect(() => {
         fetchGroupInfo();
     }, [id]);
+
+    useEffect(() => {
+        Axios.get(`${baseURL}/user/get-homepage-text.php`)
+            .then((res) => setLeaderboardText(res.data || {}))
+            .catch(() => {});
+    }, [baseURL]);
 
     const fetchGroupInfo = async () => {
         try {
@@ -315,9 +324,22 @@ function GroupInfo() {
 
                                 )}
                             </Col>
-                        
+
                             </>
-                        )} 
+                        )}
+
+                        {/* Change Preferences - only next to the viewer's own row */}
+                        {member.member_id === userId && (
+                            <Col xs={2} md={2} lg={2} className="text-center">
+                                <Button
+                                    variant="primary"
+                                    size="sm"
+                                    onClick={() => setShowChangePreferences(true)}
+                                >
+                                    Change Preferences
+                                </Button>
+                            </Col>
+                        )}
                     </Row>
 
                     ))}
@@ -511,6 +533,18 @@ function GroupInfo() {
                 groupId={group.id}
                 allowNewGamlerInvite
             />
+
+            <Modal
+                show={showChangePreferences}
+                onHide={() => { setShowChangePreferences(false); fetchGroupInfo(); }}
+            >
+                <Modal.Header closeButton>
+                    <Modal.Title>Change Preferences</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    <MemberGameSelections leaderboardText={leaderboardText} />
+                </Modal.Body>
+            </Modal>
         </Container>
     );
 }
