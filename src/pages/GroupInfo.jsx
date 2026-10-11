@@ -152,7 +152,7 @@ function GroupInfo() {
         setDeleteLoading(true);
         setShowDeleteConfirm(false);
         try {
-            const res = await Axios.post(`${baseURL}/groups/delete-group.php`, { group_id: Number(id) });
+            const res = await Axios.post(`${baseURL}/groups/delete-group.php`, { group_id: Number(id), user_id: userId });
             if (res.data.status === "success") {
                 navigate('/groups');
             } else {

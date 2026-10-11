@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 
 function GroupsAdminList() {
   const baseURL = import.meta.env.VITE_BASE_URL;
+  const userId = JSON.parse(localStorage.getItem('auth'))?.id;
   const [groups, setGroups] = useState([]);
 
   useEffect(() => {
@@ -20,7 +21,7 @@ function GroupsAdminList() {
   const handleDeleteGroup = async (group) => {
     if (!window.confirm(`Delete "${group.name}"? This cannot be undone.`)) return;
     try {
-      const res = await Axios.post(`${baseURL}/groups/delete-group.php`, { group_id: group.id });
+      const res = await Axios.post(`${baseURL}/groups/delete-group.php`, { group_id: group.id, user_id: userId });
       if (res.data.status === 'success') {
         setGroups((prev) => prev.filter((g) => g.id !== group.id));
       } else {
