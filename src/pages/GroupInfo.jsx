@@ -292,7 +292,7 @@ function GroupInfo() {
                         </Col>
 
                         {/* Selected Games */}
-                        <Col xs={4}  md={5} lg={5}  className="text-start">
+                        <Col xs={4}  md={3} lg={3}  className="text-start">
                             <ul style={{ listStyleType: 'none', padding: 0, marginBottom: 0 }}>
                             {["Wordle", "Connections", "Phrazle", "Quordle", "Octordle"].map((game) => (
                                 <li key={game}>
@@ -309,7 +309,7 @@ function GroupInfo() {
                         {userId === captainid && (
                             <>
                         
-                            <Col xs={4} md={3} lg={3}  className="text-center">
+                            <Col xs={4} md={5} lg={5}  className="text-center">
                                 {member.member_id !== captainid && (
                                     <Button
                                         variant="danger"
@@ -330,7 +330,7 @@ function GroupInfo() {
 
                         {/* Change Preferences - only next to the viewer's own row */}
                         {member.member_id === userId && (
-                            <Col xs={4} md={3} lg={3} className="text-center">
+                            <Col xs={4} md={5} lg={5} className="text-center">
                                 <Button
                                     variant="primary"
                                     size="sm"
