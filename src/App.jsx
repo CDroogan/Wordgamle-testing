@@ -32,6 +32,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import AdminText from './pages/AdminText';
 import AdminRoute from './auth/AdminRoute';
 import UsersList from './pages/UsersList';
+import GroupsAdminList from './pages/GroupsAdminList';
 import GamleIntro from './pages/GamleIntro';
 import FAQPage from './pages/FAQPage';
 import RulesPage from './pages/RulesPage';
@@ -66,6 +67,7 @@ function App() {
           <Route element={<AdminRoute />}>
             <Route exact path="/admin-text" element={<AdminText />} />
             <Route exact path="/users-list" element={<UsersList />} />
+            <Route exact path="/groups-list" element={<GroupsAdminList />} />
           </Route>
           <Route exact path= '/groups' element={<Groups/>}/>
           <Route exact path = '/group-invites' element = {<GroupInvites/>}/>
