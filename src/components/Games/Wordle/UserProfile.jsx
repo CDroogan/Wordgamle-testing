@@ -160,18 +160,49 @@ function UserProfile() {
         }
     };
 
+    // A modern phone photo's file SIZE can be small (a 140KB JPG) while
+    // its PIXEL dimensions are still huge (4000x3000+), since that's just
+    // JPEG compression. Handing that straight to the cropper's canvas can
+    // exceed mobile Safari's canvas memory limit, which doesn't throw a
+    // catchable JS error - it just silently reloads the page, wiping all
+    // state, which looks exactly like "the whole thing disappears and I'm
+    // back on the Profile page with no image showing". Downscaling to a
+    // safe max dimension here, before the image ever reaches the cropper,
+    // avoids that regardless of the original photo's dimensions.
+    const MAX_UPLOAD_DIMENSION = 1600;
+
     const handleUpload = (e) => {
         const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setRawImage(reader.result); // show in cropper
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            const img = new Image();
+            img.onload = () => {
+                const scale = Math.min(1, MAX_UPLOAD_DIMENSION / Math.max(img.width, img.height));
+                const canvas = document.createElement('canvas');
+                canvas.width = Math.round(img.width * scale);
+                canvas.height = Math.round(img.height * scale);
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                setRawImage(canvas.toDataURL('image/jpeg', 0.9)); // show in cropper
                 setShowCropModal(true);
             };
-            reader.readAsDataURL(file);
-        }
+            img.onerror = () => {
+                toast.error("Could not read that image. Please try a different photo.");
+            };
+            img.src = reader.result;
+        };
+        reader.readAsDataURL(file);
     };
 
+    // Left as a direct URL (not run through loadScaledImageDataUrl) - that
+    // helper draws the image into a canvas, which the browser blocks
+    // ("tainted canvas") for a cross-origin image unless the server sends
+    // matching CORS headers on that static file request, which a plain
+    // Apache-served /user/uploads/ file isn't guaranteed to do. This path
+    // already worked before, so it's left alone rather than risking that
+    // regression for a case that wasn't reported as broken.
     const handleAvatarClick = () => {
         if (previewUrl && !previewUrl.startsWith("blob:")) {
             setRawImage(`${baseURL}/user/uploads/${previewUrl}`);
