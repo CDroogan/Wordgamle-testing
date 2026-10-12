@@ -70,6 +70,14 @@ function GamleFriends() {
     }
   };
 
+  // Second line under every name: "<status if any> - X mutual friends",
+  // or just the mutual count when there's no status yet (a stranger who
+  // isn't a friend or pending request).
+  const statusLine = (label, mutualCount) => {
+    const mutualText = `${mutualCount} mutual friend${mutualCount === 1 ? '' : 's'}`;
+    return label ? `${label} - ${mutualText}` : mutualText;
+  };
+
   return (
     <Container>
       <Row className="justify-content-center pt-4">
@@ -99,15 +107,15 @@ function GamleFriends() {
                     <img
                       src={user.avatar ? `${baseURL}/user/uploads/${user.avatar}` : `${baseURL}/user/uploads/defalut_avatar.png`}
                       alt=""
-                      className="rounded-circle me-2"
+                      className="rounded-circle me-2 flex-shrink-0"
                       style={{ width: '32px', height: '32px', objectFit: 'cover' }}
                     />
-                    <span>{user.first_name} {user.last_name} ({user.username})</span>
-                    {relationshipLabel(user) && (
-                      <span className="text-muted ms-2" style={{ fontSize: '0.85rem' }}>
-                        - {relationshipLabel(user)}
-                      </span>
-                    )}
+                    <div style={{ minWidth: 0 }}>
+                      <div>{user.first_name} {user.last_name} ({user.username})</div>
+                      <div className="text-muted" style={{ fontSize: '0.85rem' }}>
+                        {statusLine(relationshipLabel(user), user.mutual_count)}
+                      </div>
+                    </div>
                   </ListGroup.Item>
                 ))
               )}
@@ -129,13 +137,15 @@ function GamleFriends() {
                   <img
                     src={friend.avatar ? `${baseURL}/user/uploads/${friend.avatar}` : `${baseURL}/user/uploads/defalut_avatar.png`}
                     alt=""
-                    className="rounded-circle me-2"
+                    className="rounded-circle me-2 flex-shrink-0"
                     style={{ width: '32px', height: '32px', objectFit: 'cover' }}
                   />
-                  <span>{friend.first_name} {friend.last_name} ({friend.username})</span>
-                  <span className="text-muted ms-2" style={{ fontSize: '0.85rem' }}>
-                    - Friend - {friend.mutual_count} mutual friend{friend.mutual_count === 1 ? '' : 's'}
-                  </span>
+                  <div style={{ minWidth: 0 }}>
+                    <div>{friend.first_name} {friend.last_name} ({friend.username})</div>
+                    <div className="text-muted" style={{ fontSize: '0.85rem' }}>
+                      {statusLine('Friend', friend.mutual_count)}
+                    </div>
+                  </div>
                 </ListGroup.Item>
               ))
             )}

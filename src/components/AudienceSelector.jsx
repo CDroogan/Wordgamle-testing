@@ -12,7 +12,7 @@ export const AUDIENCE_OPTIONS = [
 ];
 
 export function getAudienceMeta(value) {
-  return AUDIENCE_OPTIONS.find((o) => o.value === value) || AUDIENCE_OPTIONS[1];
+  return AUDIENCE_OPTIONS.find((o) => o.value === value) || AUDIENCE_OPTIONS[0];
 }
 
 // A button (not a checkbox) that opens a small menu of the three

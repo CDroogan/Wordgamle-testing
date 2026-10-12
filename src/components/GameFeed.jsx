@@ -320,14 +320,14 @@ function GameFeed({ userId, baseURL, focusPostId }) {
   const [postText, setPostText] = useState('');
   const [postImage, setPostImage] = useState(null);
   const [postSpoilerGames, setPostSpoilerGames] = useState([]);
-  const [postAudience, setPostAudience] = useState('friends');
+  const [postAudience, setPostAudience] = useState('all');
   const [expandedComments, setExpandedComments] = useState({}); // postId -> comments[]
   const [commentDrafts, setCommentDrafts] = useState({}); // postId -> text
   const [commentImages, setCommentImages] = useState({}); // postId -> File
   const [commentSpoilerGames, setCommentSpoilerGames] = useState({}); // postId -> tags[]
   const [editingPostId, setEditingPostId] = useState(null);
   const [editPostText, setEditPostText] = useState('');
-  const [editPostAudience, setEditPostAudience] = useState('friends');
+  const [editPostAudience, setEditPostAudience] = useState('all');
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editCommentText, setEditCommentText] = useState('');
   const [selectedMember, setSelectedMember] = useState(null);
@@ -431,7 +431,7 @@ function GameFeed({ userId, baseURL, focusPostId }) {
         setPostText('');
         setPostImage(null);
         setPostSpoilerGames([]);
-        setPostAudience('friends');
+        setPostAudience('all');
         fetchFeed();
       } else {
         toast.error(res.data.error || 'Something went wrong while posting.');
@@ -513,7 +513,7 @@ function GameFeed({ userId, baseURL, focusPostId }) {
   const startEditPost = (post) => {
     setEditingPostId(post.id);
     setEditPostText(post.content || '');
-    setEditPostAudience(post.audience || 'friends');
+    setEditPostAudience(post.audience || 'all');
   };
 
   const cancelEditPost = () => {
