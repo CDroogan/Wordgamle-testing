@@ -11,6 +11,7 @@ import Resetpwd from './auth/Resetpwd';
 import Resetpwdform from './auth/Resetpwdform';
 import UserProfile from './components/Games/Wordle/UserProfile';
 import GamleFriends from './pages/GamleFriends';
+import PrivateMessages from './pages/PrivateMessages';
 import Home from './pages/Home';
 import Connectionsgame from './components/Games/Connections/GameLayout';
 import Phrazlegame from './components/Games/Phrazle/GameLayout';
@@ -84,6 +85,7 @@ function App() {
           <Route exact path= '/octordlestats' element={<OctordleStat/>}/>
           <Route exact path= '/edit-profile' element={<UserProfile/>}/>
           <Route exact path= '/gamle-friends' element={<GamleFriends/>}/>
+          <Route exact path= '/private-messages' element={<PrivateMessages/>}/>
         </Route>
       </Routes>
       </LeaderboardProvider>

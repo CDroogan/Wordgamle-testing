@@ -96,6 +96,46 @@ const GroupInvites = () => {
     }
   };
 
+  // Private Messages - another completely separate table/poll, same
+  // bell-dropdown pattern as friend requests and mentions. Unlike
+  // mentions (one row per mention), the "item" here is a whole
+  // conversation - unseen_count>0 is what makes one unread, same
+  // granularity a friend request already uses (one request = one item,
+  // regardless of how many rows it actually took to get there).
+  const [conversations, setConversations] = useState([]);
+  const conversationsIntervalRef = useRef(null);
+  useEffect(() => {
+    fetchConversations();
+    conversationsIntervalRef.current = setInterval(fetchConversations, 8000);
+    return () => clearInterval(conversationsIntervalRef.current);
+  }, []);
+
+  const fetchConversations = async () => {
+    try {
+      const response = await axios.get(`${baseURL}/messages/get-conversations.php?user_id=${userId}`);
+      const newConversations = Array.isArray(response.data.conversations) ? response.data.conversations : [];
+      setConversations(newConversations);
+    } catch (error) {
+      console.error('Error fetching conversations:', error);
+    }
+  };
+
+  const unreadConversations = conversations.filter((c) => c.unseen_count > 0);
+
+  const handleClickConversation = async (conversation) => {
+    setShowDropdown(false);
+    try {
+      await axios.post(`${baseURL}/messages/mark-conversation-seen.php`, {
+        user_id: userId,
+        other_id: conversation.other_id,
+      });
+      setConversations((prev) => prev.map((c) => (c.other_id === conversation.other_id ? { ...c, unseen_count: 0 } : c)));
+      navigate(`/private-messages?user=${conversation.other_id}`);
+    } catch (error) {
+      console.error('Error marking conversation seen:', error);
+    }
+  };
+
   const handleClickMention = async (mention) => {
     setShowDropdown(false);
     try {
@@ -237,9 +277,9 @@ const fetchGroupMessages = async () => {
 // in the list.
 useEffect(() => {
   setunReadCount(
-    getUnreadCount(groupMessages, userId) + getUnseenMentionCount(mentions) + getUnseenFriendRequestCount(friendRequests)
+    getUnreadCount(groupMessages, userId) + getUnseenMentionCount(mentions) + getUnseenFriendRequestCount(friendRequests) + unreadConversations.length
   );
-}, [groupMessages, mentions, friendRequests, userId]);
+}, [groupMessages, mentions, friendRequests, unreadConversations.length, userId]);
 
   // const handleClickGroup = async (e, groupId, game, userId, msgId, msgFrom, msgReportDate, msgPeriod) => {
   //   e.preventDefault();
@@ -562,6 +602,9 @@ const handleClick = async (
       await axios.post(`${baseURL}/friends/mark-requests-seen.php`, {
         user_id: userId,
       });
+      await Promise.all(unreadConversations.map((c) =>
+        axios.post(`${baseURL}/messages/mark-conversation-seen.php`, { user_id: userId, other_id: c.other_id })
+      ));
 
       const updatedMessages = groupMessages.map((msg) => ({
         ...msg,
@@ -573,6 +616,7 @@ const handleClick = async (
       setGroupMessages(updatedMessages);
       setMentions((prev) => prev.map((m) => ({ ...m, seen_at: 'seen' })));
       setFriendRequests((prev) => prev.map((r) => ({ ...r, seen_at: 'seen' })));
+      setConversations((prev) => prev.map((c) => ({ ...c, unseen_count: 0 })));
 
     } catch (error) {
       console.error("Error marking all as read:", error);
@@ -658,7 +702,7 @@ const handleClick = async (
 
         </Dropdown.Header>
 
-          {(Array.isArray(groupMessages) && groupMessages.length > 0) || (Array.isArray(mentions) && mentions.length > 0) || (Array.isArray(friendRequests) && friendRequests.length > 0) ? (
+          {(Array.isArray(groupMessages) && groupMessages.length > 0) || (Array.isArray(mentions) && mentions.length > 0) || (Array.isArray(friendRequests) && friendRequests.length > 0) || unreadConversations.length > 0 ? (
   <div
     style={{
       maxHeight: "300px",        // adjust height as needed
@@ -669,6 +713,38 @@ const handleClick = async (
     }}
   >
     <ListGroup variant="flush" style={{ minWidth: "300px" }}>
+      {/* Private Messages - completely separate from Groups, mentions,
+          and friend requests, shown in the same bell dropdown for one
+          unified notification list. */}
+      {unreadConversations.length > 0 &&
+        unreadConversations.map((conversation) => {
+          const isUnread = !previewAllRead;
+          return (
+            <ListGroup.Item
+              key={`conversation-${conversation.other_id}`}
+              action
+              className={`${isUnread ? "unread-msg" : "read-msg"} msg-item`}
+              style={{ cursor: "pointer" }}
+              onClick={() => handleClickConversation(conversation)}
+            >
+              <div className="msg-row">
+                <div className="msg-left">
+                  <img
+                    src={conversation.avatar ? `${baseURL}/user/uploads/${conversation.avatar}` : `${baseURL}/user/uploads/default_avatar.png`}
+                    alt=""
+                    className="rounded-circle me-2"
+                    style={{ width: '24px', height: '24px', objectFit: 'cover', verticalAlign: 'middle' }}
+                  />
+                  <strong>{conversation.username}</strong> sent you a private message.
+                  <div className="time-ago">{timeAgo(conversation.last_message_at, true)}</div>
+                </div>
+                {isUnread && <span className="unread-dot"></span>}
+              </div>
+            </ListGroup.Item>
+          );
+        })
+      }
+
       {/* GamleFriend requests - completely separate from Groups and
           mentions, shown in the same bell dropdown for one unified
           notification list. */}

@@ -387,7 +387,7 @@ function UserProfile() {
     return (
         <Container>
             <Row className="align-content-center justify-content-center">
-                <Col md={5}>
+                <Col md={5} className="d-flex flex-column" style={{ minHeight: 'calc(100vh - 160px)' }}>
                     <div className="mb-3 text-center">
                         <div className="profile-pic-wrapper">
                             <label className="profile-pic-label" onClick={handleAvatarClick}>
@@ -484,9 +484,20 @@ function UserProfile() {
                     <Button className="btn btn-block btn-hero-lg btn-hero-success mt-2 w-100" onClick={() => navigate('/gamle-friends')}>
                         Gamle Friends
                     </Button>
-                    <Button className="btn btn-block btn-hero-lg btn-hero-success mt-2 w-100" onClick={() => setShowManage(true)}>
-                        Manage Account
-                    </Button>
+
+                    {/* Pinned to the bottom of the page, same layout as the
+                        mockup - Manage Account and PMs sit in their own
+                        footer row instead of stacking with the buttons
+                        above, since both are more "exit the profile page"
+                        actions than profile-editing ones. */}
+                    <div className="mt-auto d-flex gap-2 pt-4">
+                        <Button className="btn btn-hero-lg btn-hero-success flex-grow-1" onClick={() => setShowManage(true)}>
+                            Manage Account
+                        </Button>
+                        <Button className="btn btn-hero-lg btn-hero-success flex-grow-1" onClick={() => navigate('/private-messages')}>
+                            PMs
+                        </Button>
+                    </div>
                 </Col>
             </Row>
 
