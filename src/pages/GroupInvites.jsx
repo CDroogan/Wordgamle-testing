@@ -53,6 +53,49 @@ const GroupInvites = () => {
     return list.filter((m) => !m.seen_at).length;
   };
 
+  // GamleFriend requests - completely separate from Groups and from
+  // GameFeed mentions (its own table, own fetch/poll), so it has no
+  // group_id handling to worry about, but shows up in the same bell
+  // dropdown/badge. Clicking one sends the Gamler to the Profile page,
+  // same as a group invite does, since that's where requests are
+  // actually accepted/declined.
+  const [friendRequests, setFriendRequests] = useState([]);
+  const friendRequestIntervalRef = useRef(null);
+  useEffect(() => {
+    fetchFriendRequests();
+    friendRequestIntervalRef.current = setInterval(fetchFriendRequests, 8000);
+    return () => clearInterval(friendRequestIntervalRef.current);
+  }, []);
+
+  const fetchFriendRequests = async () => {
+    try {
+      const response = await axios.get(`${baseURL}/friends/get-pending-requests.php?user_id=${userId}`);
+      const newRequests = Array.isArray(response.data.requests) ? response.data.requests : [];
+      setFriendRequests(newRequests);
+    } catch (error) {
+      console.error('Error fetching friend requests:', error);
+    }
+  };
+
+  const getUnseenFriendRequestCount = (list) => {
+    if (!Array.isArray(list)) return 0;
+    return list.filter((r) => !r.seen_at).length;
+  };
+
+  const handleClickFriendRequest = async (request) => {
+    setShowDropdown(false);
+    try {
+      await axios.post(`${baseURL}/friends/mark-requests-seen.php`, {
+        user_id: userId,
+        request_id: request.id,
+      });
+      setFriendRequests((prev) => prev.map((r) => (r.id === request.id ? { ...r, seen_at: 'seen' } : r)));
+      navigate('/edit-profile');
+    } catch (error) {
+      console.error('Error marking friend request seen:', error);
+    }
+  };
+
   const handleClickMention = async (mention) => {
     setShowDropdown(false);
     try {
@@ -194,9 +237,9 @@ const fetchGroupMessages = async () => {
 // in the list.
 useEffect(() => {
   setunReadCount(
-    getUnreadCount(groupMessages, userId) + getUnseenMentionCount(mentions)
+    getUnreadCount(groupMessages, userId) + getUnseenMentionCount(mentions) + getUnseenFriendRequestCount(friendRequests)
   );
-}, [groupMessages, mentions, userId]);
+}, [groupMessages, mentions, friendRequests, userId]);
 
   // const handleClickGroup = async (e, groupId, game, userId, msgId, msgFrom, msgReportDate, msgPeriod) => {
   //   e.preventDefault();
@@ -516,6 +559,9 @@ const handleClick = async (
       await axios.post(`${baseURL}/gamefeed/mark-mentions-seen.php`, {
         user_id: userId,
       });
+      await axios.post(`${baseURL}/friends/mark-requests-seen.php`, {
+        user_id: userId,
+      });
 
       const updatedMessages = groupMessages.map((msg) => ({
         ...msg,
@@ -526,6 +572,7 @@ const handleClick = async (
 
       setGroupMessages(updatedMessages);
       setMentions((prev) => prev.map((m) => ({ ...m, seen_at: 'seen' })));
+      setFriendRequests((prev) => prev.map((r) => ({ ...r, seen_at: 'seen' })));
 
     } catch (error) {
       console.error("Error marking all as read:", error);
@@ -611,7 +658,7 @@ const handleClick = async (
 
         </Dropdown.Header>
 
-          {(Array.isArray(groupMessages) && groupMessages.length > 0) || (Array.isArray(mentions) && mentions.length > 0) ? (
+          {(Array.isArray(groupMessages) && groupMessages.length > 0) || (Array.isArray(mentions) && mentions.length > 0) || (Array.isArray(friendRequests) && friendRequests.length > 0) ? (
   <div
     style={{
       maxHeight: "300px",        // adjust height as needed
@@ -622,6 +669,38 @@ const handleClick = async (
     }}
   >
     <ListGroup variant="flush" style={{ minWidth: "300px" }}>
+      {/* GamleFriend requests - completely separate from Groups and
+          mentions, shown in the same bell dropdown for one unified
+          notification list. */}
+      {Array.isArray(friendRequests) && friendRequests.length > 0 &&
+        friendRequests.map((request) => {
+          const isUnread = !previewAllRead && !request.seen_at;
+          return (
+            <ListGroup.Item
+              key={`friend-request-${request.id}`}
+              action
+              className={`${isUnread ? "unread-msg" : "read-msg"} msg-item`}
+              style={{ cursor: "pointer" }}
+              onClick={() => handleClickFriendRequest(request)}
+            >
+              <div className="msg-row">
+                <div className="msg-left">
+                  <img
+                    src={request.sender_avatar ? `${baseURL}/user/uploads/${request.sender_avatar}` : `${baseURL}/user/uploads/default_avatar.png`}
+                    alt=""
+                    className="rounded-circle me-2"
+                    style={{ width: '24px', height: '24px', objectFit: 'cover', verticalAlign: 'middle' }}
+                  />
+                  <strong>{request.sender_username}</strong> wants to be your GamleFriend.
+                  <div className="time-ago">{timeAgo(request.created_at, true)}</div>
+                </div>
+                {isUnread && <span className="unread-dot"></span>}
+              </div>
+            </ListGroup.Item>
+          );
+        })
+      }
+
       {/* GameFeed @mentions - completely separate from Groups, shown in
           the same bell dropdown for one unified notification list. */}
       {Array.isArray(mentions) && mentions.length > 0 &&

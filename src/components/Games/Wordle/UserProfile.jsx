@@ -47,6 +47,7 @@ function UserProfile() {
     const [showAcceptWizard, setShowAcceptWizard] = useState(false);
     const [acceptedInvite, setAcceptedInvite] = useState(null);
     const [showNotificationsSoon, setShowNotificationsSoon] = useState(false);
+    const [pendingFriendRequests, setPendingFriendRequests] = useState([]);
 
     const [registrationformText, setRegistrationFormText] = useState({
             firstname_label: '',
@@ -128,6 +129,50 @@ function UserProfile() {
         const interval = setInterval(fetchPendingInvites, 15000);
         return () => clearInterval(interval);
     }, [userId]);
+
+    // Pending GamleFriend Requests - same "always one obvious place to
+    // deal with it" rationale as Pending Invitations above, polled the
+    // same way. Kept completely separate (own table, own endpoints) since
+    // friend requests aren't tied to a group.
+    const fetchPendingFriendRequests = async () => {
+        try {
+            const res = await Axios.get(`${baseURL}/friends/get-pending-requests.php?user_id=${userId}`);
+            setPendingFriendRequests(Array.isArray(res.data.requests) ? res.data.requests : []);
+        } catch (error) {
+            console.error("Error fetching pending friend requests:", error);
+        }
+    };
+
+    useEffect(() => {
+        if (!userId) return;
+        fetchPendingFriendRequests();
+        const interval = setInterval(fetchPendingFriendRequests, 15000);
+        return () => clearInterval(interval);
+    }, [userId]);
+
+    const handleAcceptFriendRequest = async (request) => {
+        try {
+            await Axios.post(`${baseURL}/friends/accept-request.php`, {
+                user_id: userId,
+                request_id: request.id,
+            });
+            setPendingFriendRequests((prev) => prev.filter((r) => r.id !== request.id));
+        } catch (error) {
+            toast.error("Failed to accept friend request.");
+        }
+    };
+
+    const handleDeclineFriendRequest = async (request) => {
+        try {
+            await Axios.post(`${baseURL}/friends/decline-request.php`, {
+                user_id: userId,
+                request_id: request.id,
+            });
+            setPendingFriendRequests((prev) => prev.filter((r) => r.id !== request.id));
+        } catch (error) {
+            toast.error("Failed to decline friend request.");
+        }
+    };
 
     const handleAcceptInvite = async (invite) => {
         const date = new Date();
@@ -401,6 +446,33 @@ function UserProfile() {
                         </div>
                     )}
 
+                    {pendingFriendRequests.length > 0 && (
+                        <div className="my-4" style={{ background: '#330072', borderRadius: '1rem', padding: '1rem' }}>
+                            <div className="border rounded p-3 bg-white">
+                                <h5 className="mb-3">Pending GamleFriend Requests:</h5>
+                                {pendingFriendRequests.map((request) => (
+                                    <div key={request.id} className="mb-3 d-flex align-items-center">
+                                        <img
+                                            src={request.sender_avatar ? `${baseURL}/user/uploads/${request.sender_avatar}` : `${baseURL}/user/uploads/defalut_avatar.png`}
+                                            alt=""
+                                            className="rounded-circle me-2"
+                                            style={{ width: '32px', height: '32px', objectFit: 'cover' }}
+                                        />
+                                        <div className="flex-grow-1">
+                                            <strong>{request.sender_first_name} {request.sender_last_name}</strong> ({request.sender_username})
+                                        </div>
+                                        <Button size="sm" variant="success" className="me-2" onClick={() => handleAcceptFriendRequest(request)}>
+                                            Accept
+                                        </Button>
+                                        <Button size="sm" variant="danger" onClick={() => handleDeclineFriendRequest(request)}>
+                                            Decline
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Placeholder for now - a real per-Gamler notification
                         management page is a planned future feature. */}
                     <Button className="btn btn-block btn-hero-lg btn-hero-success mt-2 w-100" onClick={() => setShowNotificationsSoon(true)}>
@@ -408,6 +480,9 @@ function UserProfile() {
                     </Button>
                     <Button className="btn btn-block btn-hero-lg btn-hero-success mt-2 w-100" onClick={() => setShowSettings(true)}>
                         Profile Settings
+                    </Button>
+                    <Button className="btn btn-block btn-hero-lg btn-hero-success mt-2 w-100" onClick={() => navigate('/gamle-friends')}>
+                        Gamle Friends
                     </Button>
                     <Button className="btn btn-block btn-hero-lg btn-hero-success mt-2 w-100" onClick={() => setShowManage(true)}>
                         Manage Account

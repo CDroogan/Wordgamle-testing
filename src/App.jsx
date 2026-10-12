@@ -10,6 +10,7 @@ import Statistics from './pages/Statistics';
 import Resetpwd from './auth/Resetpwd';
 import Resetpwdform from './auth/Resetpwdform';
 import UserProfile from './components/Games/Wordle/UserProfile';
+import GamleFriends from './pages/GamleFriends';
 import Home from './pages/Home';
 import Connectionsgame from './components/Games/Connections/GameLayout';
 import Phrazlegame from './components/Games/Phrazle/GameLayout';
@@ -82,6 +83,7 @@ function App() {
           <Route exact path= '/quordlestats' element={<QuordleStat/>}/>
           <Route exact path= '/octordlestats' element={<OctordleStat/>}/>
           <Route exact path= '/edit-profile' element={<UserProfile/>}/>
+          <Route exact path= '/gamle-friends' element={<GamleFriends/>}/>
         </Route>
       </Routes>
       </LeaderboardProvider>
