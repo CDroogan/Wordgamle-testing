@@ -11,6 +11,7 @@ import ReactionBar from './ReactionBar';
 import MemberProfile from '../constant/Models/MemberProfile';
 import MentionTextarea from './MentionTextarea';
 import SpoilerAlertPicker from './SpoilerAlertPicker';
+import AudienceSelector, { getAudienceMeta } from './AudienceSelector';
 import { renderWithMentions } from '../utils/mentions';
 import { GAME_DISPLAY_NAMES, GAME_PLAY_URLS, getTaggedPeriodGraceEnd, describeSpoilerGameReferences } from '../utils/gracePeriod';
 import { markPastePending } from '../utils/pendingPaste';
@@ -136,6 +137,37 @@ function SpoilerBadge({ item, size = 32, top = '1rem' }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// Shows which audience a post was shared with, in the same spot as the
+// Spoiler badge (shifted left when both appear on the same post, so they
+// never overlap). Purely informational here - the audience itself is
+// only ever changed via the post's own Edit feature.
+function AudienceBadge({ audience, size = 32, top = '1rem', right = '1rem' }) {
+  const meta = getAudienceMeta(audience);
+  const Icon = meta.icon;
+  return (
+    <div
+      title={meta.label}
+      style={{
+        position: 'absolute',
+        top,
+        right,
+        zIndex: 10,
+        width: size,
+        height: size,
+        borderRadius: '50%',
+        border: '2px solid var(--wordgamle-accent)',
+        background: '#fff',
+        color: 'var(--wordgamle-accent)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <Icon size={size * 0.5} />
     </div>
   );
 }
@@ -288,12 +320,14 @@ function GameFeed({ userId, baseURL, focusPostId }) {
   const [postText, setPostText] = useState('');
   const [postImage, setPostImage] = useState(null);
   const [postSpoilerGames, setPostSpoilerGames] = useState([]);
+  const [postAudience, setPostAudience] = useState('friends');
   const [expandedComments, setExpandedComments] = useState({}); // postId -> comments[]
   const [commentDrafts, setCommentDrafts] = useState({}); // postId -> text
   const [commentImages, setCommentImages] = useState({}); // postId -> File
   const [commentSpoilerGames, setCommentSpoilerGames] = useState({}); // postId -> tags[]
   const [editingPostId, setEditingPostId] = useState(null);
   const [editPostText, setEditPostText] = useState('');
+  const [editPostAudience, setEditPostAudience] = useState('friends');
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editCommentText, setEditCommentText] = useState('');
   const [selectedMember, setSelectedMember] = useState(null);
@@ -390,12 +424,14 @@ function GameFeed({ userId, baseURL, focusPostId }) {
       formData.append('content', postText.trim());
       if (postImage) formData.append('image', postImage);
       if (postSpoilerGames.length > 0) formData.append('spoiler_games', JSON.stringify(postSpoilerGames));
+      formData.append('audience', postAudience);
 
       const res = await Axios.post(`${baseURL}/gamefeed/create-post.php`, formData);
       if (res.data.success) {
         setPostText('');
         setPostImage(null);
         setPostSpoilerGames([]);
+        setPostAudience('friends');
         fetchFeed();
       } else {
         toast.error(res.data.error || 'Something went wrong while posting.');
@@ -477,6 +513,7 @@ function GameFeed({ userId, baseURL, focusPostId }) {
   const startEditPost = (post) => {
     setEditingPostId(post.id);
     setEditPostText(post.content || '');
+    setEditPostAudience(post.audience || 'friends');
   };
 
   const cancelEditPost = () => {
@@ -488,9 +525,9 @@ function GameFeed({ userId, baseURL, focusPostId }) {
     const content = editPostText.trim();
     if (!content) return;
     try {
-      const res = await Axios.post(`${baseURL}/gamefeed/edit-post.php`, { post_id: postId, user_id: userId, content });
+      const res = await Axios.post(`${baseURL}/gamefeed/edit-post.php`, { post_id: postId, user_id: userId, content, audience: editPostAudience });
       if (res.data.success) {
-        setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, content, edited_at: res.data.edited_at } : p)));
+        setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, content, audience: editPostAudience, edited_at: res.data.edited_at } : p)));
         setEditingPostId(null);
         setEditPostText('');
       } else {
@@ -553,15 +590,18 @@ function GameFeed({ userId, baseURL, focusPostId }) {
           (inserted at the cursor, same as any normal paste), attach a
           photo, or mix all of it in one post. */}
       <Form onSubmit={handleSubmitPost} className="border rounded p-3 mb-4 bg-white">
-        <div className="mb-2">
-          <MentionTextarea
-            value={postText}
-            onChange={setPostText}
-            minRows={2}
-            maxRows={12}
-            placeholder="Share something with other Gamlers..."
-            baseURL={baseURL}
-          />
+        <div className="d-flex align-items-start gap-2 mb-2">
+          <div className="flex-grow-1">
+            <MentionTextarea
+              value={postText}
+              onChange={setPostText}
+              minRows={2}
+              maxRows={12}
+              placeholder="Share something with other Gamlers..."
+              baseURL={baseURL}
+            />
+          </div>
+          <AudienceSelector value={postAudience} onChange={setPostAudience} />
         </div>
         <div className="d-flex align-items-start gap-2 mb-2">
           <ImagePicker image={postImage} onChange={setPostImage} />
@@ -578,6 +618,7 @@ function GameFeed({ userId, baseURL, focusPostId }) {
         const isLocked = isSpoiler && post.is_locked;
         return (
         <div key={post.id} id={`gamefeed-post-${post.id}`} className="border rounded p-3 mb-3 bg-white" style={{ position: 'relative' }}>
+          <AudienceBadge audience={post.audience} size={32} top="1rem" right={isSpoiler ? '3.2rem' : '1rem'} />
           {isSpoiler && <SpoilerBadge item={post} size={32} top="1rem" />}
           <div className="d-flex align-items-center mb-2" style={{ cursor: 'pointer' }} onClick={() => handleMentionClick(post.username)}>
             <img
@@ -607,10 +648,11 @@ function GameFeed({ userId, baseURL, focusPostId }) {
                 maxRows={12}
                 baseURL={baseURL}
               />
-              <div className="mt-1 d-flex justify-content-between">
+              <div className="mt-1 d-flex justify-content-between align-items-center">
                 <Button size="sm" variant="outline-danger" onClick={() => handleDeletePost(post.id)}>Delete Post</Button>
-                <div>
-                  <Button size="sm" variant="outline-secondary" className="me-2" onClick={cancelEditPost}>Cancel</Button>
+                <div className="d-flex align-items-center gap-2">
+                  <AudienceSelector value={editPostAudience} onChange={setEditPostAudience} />
+                  <Button size="sm" variant="outline-secondary" onClick={cancelEditPost}>Cancel</Button>
                   <Button size="sm" variant="primary" onClick={() => handleSaveEditPost(post.id)}>Save</Button>
                 </div>
               </div>
