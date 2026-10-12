@@ -427,7 +427,7 @@ function UserProfile() {
                     {pendingInvites.length > 0 && (
                         <div className="my-4" style={{ background: '#330072', borderRadius: '1rem', padding: '1rem' }}>
                             <div className="border rounded p-3 bg-white">
-                                <h5 className="mb-3">Pending Invitations:</h5>
+                                <h5 className="mb-3">Pending Group Invitations:</h5>
                                 {pendingInvites.map((invite) => (
                                     <div key={invite.id} className="mb-3">
                                         <div><strong>Group Name:</strong> {invite.group_name}</div>
