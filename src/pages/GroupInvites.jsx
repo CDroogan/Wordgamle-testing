@@ -127,10 +127,10 @@ const GroupInvites = () => {
     try {
       await axios.post(`${baseURL}/messages/mark-conversation-seen.php`, {
         user_id: userId,
-        other_id: conversation.other_id,
+        conversation_id: conversation.conversation_id,
       });
-      setConversations((prev) => prev.map((c) => (c.other_id === conversation.other_id ? { ...c, unseen_count: 0 } : c)));
-      navigate(`/private-messages?user=${conversation.other_id}`);
+      setConversations((prev) => prev.map((c) => (c.conversation_id === conversation.conversation_id ? { ...c, unseen_count: 0 } : c)));
+      navigate(`/private-messages?conversation=${conversation.conversation_id}`);
     } catch (error) {
       console.error('Error marking conversation seen:', error);
     }
@@ -603,7 +603,7 @@ const handleClick = async (
         user_id: userId,
       });
       await Promise.all(unreadConversations.map((c) =>
-        axios.post(`${baseURL}/messages/mark-conversation-seen.php`, { user_id: userId, other_id: c.other_id })
+        axios.post(`${baseURL}/messages/mark-conversation-seen.php`, { user_id: userId, conversation_id: c.conversation_id })
       ));
 
       const updatedMessages = groupMessages.map((msg) => ({
@@ -719,9 +719,12 @@ const handleClick = async (
       {unreadConversations.length > 0 &&
         unreadConversations.map((conversation) => {
           const isUnread = !previewAllRead;
+          // In a group DM, name whoever actually sent the newest
+          // message, not every participant.
+          const sender = conversation.participants.find((p) => p.id === conversation.last_message_sender_id) || conversation.participants[0];
           return (
             <ListGroup.Item
-              key={`conversation-${conversation.other_id}`}
+              key={`conversation-${conversation.conversation_id}`}
               action
               className={`${isUnread ? "unread-msg" : "read-msg"} msg-item`}
               style={{ cursor: "pointer" }}
@@ -730,12 +733,12 @@ const handleClick = async (
               <div className="msg-row">
                 <div className="msg-left">
                   <img
-                    src={conversation.avatar ? `${baseURL}/user/uploads/${conversation.avatar}` : `${baseURL}/user/uploads/default_avatar.png`}
+                    src={sender.avatar ? `${baseURL}/user/uploads/${sender.avatar}` : `${baseURL}/user/uploads/default_avatar.png`}
                     alt=""
                     className="rounded-circle me-2"
                     style={{ width: '24px', height: '24px', objectFit: 'cover', verticalAlign: 'middle' }}
                   />
-                  <strong>{conversation.username}</strong> sent you a private message.
+                  <strong>{sender.username}</strong> sent you a private message.
                   <div className="time-ago">{timeAgo(conversation.last_message_at, true)}</div>
                 </div>
                 {isUnread && <span className="unread-dot"></span>}

@@ -490,12 +490,12 @@ function UserProfile() {
                         footer row instead of stacking with the buttons
                         above, since both are more "exit the profile page"
                         actions than profile-editing ones. */}
-                    <div className="mt-auto d-flex gap-2 pt-4">
-                        <Button className="btn btn-hero-lg btn-hero-success flex-grow-1" onClick={() => setShowManage(true)}>
+                    <div className="mt-auto d-flex justify-content-between gap-2 pt-4">
+                        <Button className="btn btn-hero-lg btn-hero-success" onClick={() => setShowManage(true)}>
                             Manage Account
                         </Button>
-                        <Button className="btn btn-hero-lg btn-hero-success flex-grow-1" onClick={() => navigate('/private-messages')}>
-                            PMs
+                        <Button className="btn btn-hero-lg btn-hero-success" onClick={() => navigate('/private-messages')}>
+                            Private Messages
                         </Button>
                     </div>
                 </Col>
