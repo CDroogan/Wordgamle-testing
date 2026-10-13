@@ -286,8 +286,19 @@ function UserProfile() {
 
                     if (response.data.status === "success") {
                         toast.success("Profile picture updated!");
+                        // Re-read localStorage fresh here rather than reusing
+                        // the USER_AUTH_DATA captured when this page last
+                        // rendered - the upload can take a few seconds, and
+                        // this callback keeps running even if the Gamler
+                        // navigates away before it finishes (unmounting the
+                        // component doesn't cancel an in-flight request).
+                        // Merging onto a stale snapshot instead of whatever
+                        // is actually in localStorage by the time this
+                        // resolves risked clobbering a newer, legitimate
+                        // value with old data.
+                        const currentAuth = JSON.parse(localStorage.getItem('auth')) || {};
                         localStorage.setItem("auth", JSON.stringify({
-                            ...USER_AUTH_DATA,
+                            ...currentAuth,
                             avatar: `${response.data.avatar || objectUrl}?t=${Date.now()}`,
                         }));
                     } else {
@@ -337,8 +348,10 @@ function UserProfile() {
 
             if (response.data.status === "success") {
                 toast.success("Profile updated successfully!");
+                // Same fresh-read fix as cropImage's save above.
+                const currentAuth = JSON.parse(localStorage.getItem('auth')) || {};
                 localStorage.setItem("auth", JSON.stringify({
-                ...USER_AUTH_DATA,
+                ...currentAuth,
                 firstName,
                 lastName,
                 username,
