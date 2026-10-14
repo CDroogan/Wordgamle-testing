@@ -33,18 +33,16 @@ function findExistingConversationId(conversations, otherParticipantIds) {
   return match ? match.conversation_id : null;
 }
 
-function NewMessageModal({ show, onHide, baseURL, userId, onStart }) {
+// Shared by the "New Message" modal and the main page's own search box,
+// so both ways of starting a conversation behave identically: picking a
+// result adds them as a removable chip rather than starting a thread
+// immediately, letting a Gamler build up a group DM's membership before
+// committing. Chips show just the GamleName (not the full name) to
+// save space - the Gamler already saw the full name in the results
+// list before picking them.
+function RecipientPicker({ baseURL, userId, selected, onChange, placeholder }) {
   const [searchInput, setSearchInput] = useState('');
   const [searchResults, setSearchResults] = useState([]);
-  const [selected, setSelected] = useState([]);
-
-  useEffect(() => {
-    if (!show) {
-      setSearchInput('');
-      setSearchResults([]);
-      setSelected([]);
-    }
-  }, [show]);
 
   useEffect(() => {
     if (searchInput.trim() === '') {
@@ -66,14 +64,60 @@ function NewMessageModal({ show, onHide, baseURL, userId, onStart }) {
 
   const addRecipient = (user) => {
     if (selected.some((s) => s.id === user.id)) return;
-    setSelected((prev) => [...prev, user]);
+    onChange([...selected, user]);
     setSearchInput('');
     setSearchResults([]);
   };
 
   const removeRecipient = (id) => {
-    setSelected((prev) => prev.filter((s) => s.id !== id));
+    onChange(selected.filter((s) => s.id !== id));
   };
+
+  return (
+    <div>
+      {selected.length > 0 && (
+        <div className="mb-2 d-flex flex-wrap gap-2">
+          {selected.map((s) => (
+            <Badge key={s.id} bg="secondary" className="d-flex align-items-center gap-1 p-2">
+              {s.username}
+              <FaTimes style={{ cursor: 'pointer' }} onClick={() => removeRecipient(s.id)} />
+            </Badge>
+          ))}
+        </div>
+      )}
+      <Form.Control
+        type="text"
+        placeholder={placeholder}
+        value={searchInput}
+        onChange={(e) => setSearchInput(e.target.value)}
+      />
+      {searchInput.trim() !== '' && (
+        <ListGroup className="mt-2">
+          {searchResults.length === 0 ? (
+            <ListGroup.Item className="text-muted">No Gamlers found</ListGroup.Item>
+          ) : (
+            searchResults
+              .filter((u) => !selected.some((s) => s.id === u.id))
+              .map((user) => (
+                <ListGroup.Item key={user.id} action onClick={() => addRecipient(user)}>
+                  {user.first_name} {user.last_name} ({user.username})
+                </ListGroup.Item>
+              ))
+          )}
+        </ListGroup>
+      )}
+    </div>
+  );
+}
+
+function NewMessageModal({ show, onHide, baseURL, userId, onStart }) {
+  const [selected, setSelected] = useState([]);
+
+  useEffect(() => {
+    if (!show) {
+      setSelected([]);
+    }
+  }, [show]);
 
   return (
     <Modal show={show} onHide={onHide} centered>
@@ -81,37 +125,13 @@ function NewMessageModal({ show, onHide, baseURL, userId, onStart }) {
         <Modal.Title>New Message</Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        {selected.length > 0 && (
-          <div className="mb-2 d-flex flex-wrap gap-2">
-            {selected.map((s) => (
-              <Badge key={s.id} bg="secondary" className="d-flex align-items-center gap-1 p-2">
-                {s.first_name} {s.last_name}
-                <FaTimes style={{ cursor: 'pointer' }} onClick={() => removeRecipient(s.id)} />
-              </Badge>
-            ))}
-          </div>
-        )}
-        <Form.Control
-          type="text"
+        <RecipientPicker
+          baseURL={baseURL}
+          userId={userId}
+          selected={selected}
+          onChange={setSelected}
           placeholder="Search Gamlers to add..."
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
         />
-        {searchInput.trim() !== '' && (
-          <ListGroup className="mt-2">
-            {searchResults.length === 0 ? (
-              <ListGroup.Item className="text-muted">No Gamlers found</ListGroup.Item>
-            ) : (
-              searchResults
-                .filter((u) => !selected.some((s) => s.id === u.id))
-                .map((user) => (
-                  <ListGroup.Item key={user.id} action onClick={() => addRecipient(user)}>
-                    {user.first_name} {user.last_name} ({user.username})
-                  </ListGroup.Item>
-                ))
-            )}
-          </ListGroup>
-        )}
       </Modal.Body>
       <Modal.Footer>
         <Button variant="secondary" onClick={onHide}>Cancel</Button>
@@ -129,8 +149,7 @@ function PrivateMessages() {
   const location = useLocation();
 
   const [conversations, setConversations] = useState([]);
-  const [searchInput, setSearchInput] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
+  const [pendingRecipients, setPendingRecipients] = useState([]);
   const [showNewMessage, setShowNewMessage] = useState(false);
   // thread.conversationId is null for a brand-new conversation that
   // hasn't had its first message sent yet - nothing is persisted until
@@ -160,8 +179,7 @@ function PrivateMessages() {
       const res = await Axios.get(`${baseURL}/messages/get-conversation.php`, { params: { user_id: userId, conversation_id: conversationId } });
       if (res.data.status === 'success') {
         setThread({ conversationId: res.data.conversation_id, participants: res.data.participants, messages: res.data.messages });
-        setSearchInput('');
-        setSearchResults([]);
+        setPendingRecipients([]);
         await Axios.post(`${baseURL}/messages/mark-conversation-seen.php`, { user_id: userId, conversation_id: conversationId });
         fetchConversations();
       }
@@ -186,26 +204,6 @@ function PrivateMessages() {
     bottomRef.current?.scrollIntoView({ block: 'nearest' });
   }, [thread?.messages]);
 
-  const runSearch = useCallback(async (query) => {
-    if (query.trim() === '') {
-      setSearchResults([]);
-      return;
-    }
-    try {
-      const res = await Axios.get(`${baseURL}/messages/search-users.php`, { params: { user_id: userId, q: query.trim() } });
-      if (res.data.status === 'success') {
-        setSearchResults(res.data.users || []);
-      }
-    } catch (err) {
-      console.error('Error searching Gamlers:', err);
-    }
-  }, [baseURL, userId]);
-
-  useEffect(() => {
-    const timeout = setTimeout(() => runSearch(searchInput), 300);
-    return () => clearTimeout(timeout);
-  }, [searchInput, runSearch]);
-
   // Opens a thread with these other-participants, continuing an existing
   // conversation with that exact membership if one's already in the
   // list (so history isn't lost), otherwise a "pending" one with no
@@ -217,8 +215,7 @@ function PrivateMessages() {
       return;
     }
     setThread({ conversationId: null, participants, messages: [] });
-    setSearchInput('');
-    setSearchResults([]);
+    setPendingRecipients([]);
   };
 
   const handleStartFromModal = (selected) => {
@@ -338,48 +335,42 @@ function PrivateMessages() {
             <Button size="sm" variant="primary" onClick={() => setShowNewMessage(true)}>New Message</Button>
           </div>
 
-          <Form.Control
-            type="text"
+          <RecipientPicker
+            baseURL={baseURL}
+            userId={userId}
+            selected={pendingRecipients}
+            onChange={setPendingRecipients}
             placeholder="Search"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            className="mb-3"
           />
 
-          {searchInput.trim() !== '' ? (
-            <ListGroup>
-              {searchResults.length === 0 ? (
-                <ListGroup.Item className="text-muted">No Gamlers found</ListGroup.Item>
-              ) : (
-                searchResults.map((user) => (
-                  <ListGroup.Item key={user.id} action onClick={() => openOrStartThread([user])} className="d-flex align-items-center">
-                    <img src={avatarUrl(user.avatar)} alt="" className="rounded-circle me-2 flex-shrink-0" style={{ width: '32px', height: '32px', objectFit: 'cover' }} />
-                    <div>{user.first_name} {user.last_name} ({user.username})</div>
-                  </ListGroup.Item>
-                ))
-              )}
-            </ListGroup>
-          ) : (
-            <ListGroup>
-              {conversations.length === 0 ? (
-                <ListGroup.Item className="text-muted">No conversations yet - search above to message a Gamler!</ListGroup.Item>
-              ) : (
-                conversations.map((c) => (
-                  <ListGroup.Item key={c.conversation_id} action onClick={() => openExistingConversation(c.conversation_id)} className="d-flex align-items-center">
-                    <img src={avatarUrl(c.participants[0]?.avatar)} alt="" className="rounded-circle me-2 flex-shrink-0" style={{ width: '32px', height: '32px', objectFit: 'cover' }} />
-                    <div className="flex-grow-1" style={{ minWidth: 0 }}>
-                      <div className={c.unseen_count > 0 ? 'fw-bold' : ''}>
-                        {displayName(c.participants)}
-                      </div>
-                    </div>
-                    <div className="text-muted ms-2" style={{ fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
-                      {formatLastDate(c.last_message_at)}
-                    </div>
-                  </ListGroup.Item>
-                ))
-              )}
-            </ListGroup>
+          {pendingRecipients.length > 0 && (
+            <div className="text-end mt-2 mb-3">
+              <Button variant="primary" onClick={() => openOrStartThread(pendingRecipients)}>
+                Start Conversation
+              </Button>
+            </div>
           )}
+
+          <h6 className="text-muted mt-3 mb-2">Your conversations</h6>
+          <ListGroup>
+            {conversations.length === 0 ? (
+              <ListGroup.Item className="text-muted">No conversations yet - search above to message a Gamler!</ListGroup.Item>
+            ) : (
+              conversations.map((c) => (
+                <ListGroup.Item key={c.conversation_id} action onClick={() => openExistingConversation(c.conversation_id)} className="d-flex align-items-center">
+                  <img src={avatarUrl(c.participants[0]?.avatar)} alt="" className="rounded-circle me-2 flex-shrink-0" style={{ width: '32px', height: '32px', objectFit: 'cover' }} />
+                  <div className="flex-grow-1" style={{ minWidth: 0 }}>
+                    <div className={c.unseen_count > 0 ? 'fw-bold' : ''}>
+                      {displayName(c.participants)}
+                    </div>
+                  </div>
+                  <div className="text-muted ms-2" style={{ fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                    {formatLastDate(c.last_message_at)}
+                  </div>
+                </ListGroup.Item>
+              ))
+            )}
+          </ListGroup>
         </Col>
       </Row>
 
