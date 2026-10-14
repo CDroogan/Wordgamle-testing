@@ -21,19 +21,26 @@ function DailyActivity() {
   const [date, setDate] = useState(todayLocal());
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(false);
+  // Kept separate from "zero players" - an actual failure (auth, server
+  // error, bad response) used to get silently swallowed into an empty
+  // list, which looked identical to a genuine no-one-played day.
+  const [error, setError] = useState(null);
 
   const fetchActivity = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await Axios.get(`${baseURL}/admin/get-daily-activity.php`, { params: { user_id: userId, date } });
       if (res.data.status === 'success') {
         setPlayers(res.data.players || []);
       } else {
         setPlayers([]);
+        setError(res.data.message || 'Could not load activity for this date.');
       }
     } catch (err) {
       console.error('Error fetching daily activity:', err);
       setPlayers([]);
+      setError('Failed to load activity - please try again.');
     } finally {
       setLoading(false);
     }
@@ -65,6 +72,8 @@ function DailyActivity() {
 
       {loading ? (
         <p className="text-muted">Loading...</p>
+      ) : error ? (
+        <p className="text-danger">{error}</p>
       ) : players.length === 0 ? (
         <p className="text-muted">No results entered on this date.</p>
       ) : (
