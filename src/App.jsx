@@ -35,6 +35,7 @@ import AdminText from './pages/AdminText';
 import AdminRoute from './auth/AdminRoute';
 import UsersList from './pages/UsersList';
 import GroupsAdminList from './pages/GroupsAdminList';
+import DailyActivity from './pages/DailyActivity';
 import GamleIntro from './pages/GamleIntro';
 import FAQPage from './pages/FAQPage';
 import RulesPage from './pages/RulesPage';
@@ -70,6 +71,7 @@ function App() {
             <Route exact path="/admin-text" element={<AdminText />} />
             <Route exact path="/users-list" element={<UsersList />} />
             <Route exact path="/groups-list" element={<GroupsAdminList />} />
+            <Route exact path="/daily-activity" element={<DailyActivity />} />
           </Route>
           <Route exact path= '/groups' element={<Groups/>}/>
           <Route exact path = '/group-invites' element = {<GroupInvites/>}/>
