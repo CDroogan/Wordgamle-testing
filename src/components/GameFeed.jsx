@@ -12,6 +12,7 @@ import MemberProfile from '../constant/Models/MemberProfile';
 import MentionTextarea from './MentionTextarea';
 import SpoilerAlertPicker from './SpoilerAlertPicker';
 import AudienceSelector, { getAudienceMeta } from './AudienceSelector';
+import Logo from '../Logo.png';
 import { renderWithMentions } from '../utils/mentions';
 import { GAME_DISPLAY_NAMES, GAME_PLAY_URLS, getTaggedPeriodGraceEnd, describeSpoilerGameReferences } from '../utils/gracePeriod';
 import { markPastePending } from '../utils/pendingPaste';
@@ -307,6 +308,33 @@ function ImagePicker({ image, onChange }) {
   );
 }
 
+// Toggles between the full feed and "just my own posts." Shows the
+// viewer's own avatar normally; once active, swaps to the WordGAMLE logo
+// as the visual cue for "click here to go back to everyone's posts" -
+// mirrors how clicking the logo anywhere else on the site returns you to
+// the (unfiltered) home feed.
+function MyPostsToggle({ active, avatarUrl, baseURL, onClick }) {
+  const src = active
+    ? Logo
+    : (avatarUrl ? `${baseURL}/user/uploads/${avatarUrl}` : `${baseURL}/user/uploads/default_avatar.png`);
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="p-0 border-0 bg-transparent"
+      style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}
+      title={active ? "Show everyone's posts" : 'Show only my posts'}
+    >
+      <img
+        src={src}
+        alt={active ? "Show everyone's posts" : 'Show only my posts'}
+        className="w-100 h-100"
+        style={{ objectFit: 'cover' }}
+      />
+    </button>
+  );
+}
+
 // The GameFeed: a global, chronological feed any Gamler can post to and
 // see, completely separate from Groups. Posting mirrors the same
 // copy/paste flow already used for personal stats - the pasted text is
@@ -332,6 +360,8 @@ function GameFeed({ userId, baseURL, focusPostId }) {
   const [editCommentText, setEditCommentText] = useState('');
   const [selectedMember, setSelectedMember] = useState(null);
   const [showProfile, setShowProfile] = useState(false);
+  const [showOnlyMine, setShowOnlyMine] = useState(false);
+  const ownAvatar = JSON.parse(localStorage.getItem('auth'))?.avatar;
   const sentinelRef = useRef(null);
 
   // Spoiler Alert makes the feed's order viewer-specific (a tagged post
@@ -343,6 +373,7 @@ function GameFeed({ userId, baseURL, focusPostId }) {
     setLoading(true);
     try {
       const params = { ...buildViewerParams(userId), offset };
+      if (showOnlyMine) params.author_id = userId;
       const res = await Axios.get(`${baseURL}/gamefeed/get-feed.php`, { params });
       if (res.data.success) {
         setPosts((prev) => (offset > 0 ? [...prev, ...res.data.posts] : res.data.posts));
@@ -353,8 +384,11 @@ function GameFeed({ userId, baseURL, focusPostId }) {
     } finally {
       setLoading(false);
     }
-  }, [baseURL, userId]);
+  }, [baseURL, userId, showOnlyMine]);
 
+  // Re-runs (from offset 0, replacing whatever's currently shown) any time
+  // fetchFeed itself changes identity - including when showOnlyMine
+  // toggles, so flipping that switch is all a click needs to do.
   useEffect(() => {
     fetchFeed();
   }, [fetchFeed]);
@@ -604,7 +638,15 @@ function GameFeed({ userId, baseURL, focusPostId }) {
           <AudienceSelector value={postAudience} onChange={setPostAudience} />
         </div>
         <div className="d-flex align-items-start gap-2 mb-2">
-          <ImagePicker image={postImage} onChange={setPostImage} />
+          <div className="d-flex flex-column gap-2">
+            <ImagePicker image={postImage} onChange={setPostImage} />
+            <MyPostsToggle
+              active={showOnlyMine}
+              avatarUrl={ownAvatar}
+              baseURL={baseURL}
+              onClick={() => setShowOnlyMine((prev) => !prev)}
+            />
+          </div>
           <SpoilerAlertPicker selected={postSpoilerGames} onChange={setPostSpoilerGames} />
         </div>
         <div className="text-end">
