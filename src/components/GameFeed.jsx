@@ -5,7 +5,7 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 import { toast } from 'react-toastify';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { FaImage, FaTimes } from 'react-icons/fa';
 import ReactionBar from './ReactionBar';
 import MemberProfile from '../constant/Models/MemberProfile';
@@ -342,6 +342,7 @@ function MyPostsToggle({ active, avatarUrl, baseURL, onClick }) {
 // characters), not re-parsed into a custom grid component.
 function GameFeed({ userId, baseURL, focusPostId }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [posts, setPosts] = useState([]);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -363,6 +364,15 @@ function GameFeed({ userId, baseURL, focusPostId }) {
   const [showOnlyMine, setShowOnlyMine] = useState(false);
   const ownAvatar = JSON.parse(localStorage.getItem('auth'))?.avatar;
   const sentinelRef = useRef(null);
+
+  // Clicking the main header logo always navigates to "/" (a fresh
+  // location.key every time, even if you're already on the home page),
+  // which should always drop back to the unfiltered feed - this page
+  // doesn't unmount on same-route clicks, so that reset needs its own
+  // effect rather than relying on initial state.
+  useEffect(() => {
+    setShowOnlyMine(false);
+  }, [location.key]);
 
   // Spoiler Alert makes the feed's order viewer-specific (a tagged post
   // can sit later in one Gamler's feed than in another's), so the
@@ -637,19 +647,19 @@ function GameFeed({ userId, baseURL, focusPostId }) {
           </div>
           <AudienceSelector value={postAudience} onChange={setPostAudience} />
         </div>
-        <div className="d-flex align-items-start gap-2 mb-2">
-          <div className="d-flex flex-column gap-2">
-            <ImagePicker image={postImage} onChange={setPostImage} />
-            <MyPostsToggle
-              active={showOnlyMine}
-              avatarUrl={ownAvatar}
-              baseURL={baseURL}
-              onClick={() => setShowOnlyMine((prev) => !prev)}
-            />
+        <div className="d-flex align-items-end justify-content-between gap-2 mb-2">
+          <div className="d-flex align-items-start gap-2">
+            <div className="d-flex flex-column gap-2">
+              <ImagePicker image={postImage} onChange={setPostImage} />
+              <MyPostsToggle
+                active={showOnlyMine}
+                avatarUrl={ownAvatar}
+                baseURL={baseURL}
+                onClick={() => setShowOnlyMine((prev) => !prev)}
+              />
+            </div>
+            <SpoilerAlertPicker selected={postSpoilerGames} onChange={setPostSpoilerGames} />
           </div>
-          <SpoilerAlertPicker selected={postSpoilerGames} onChange={setPostSpoilerGames} />
-        </div>
-        <div className="text-end">
           <Button type="submit" variant="primary">Post</Button>
         </div>
       </Form>
