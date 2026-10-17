@@ -216,6 +216,36 @@ function UserProfile() {
     // avoids that regardless of the original photo's dimensions.
     const MAX_UPLOAD_DIMENSION = 1600;
 
+    // Picking from the full Gallery/Photos library (as opposed to the
+    // phone's quick "Recent" strip) hands off to a much heavier Android
+    // system picker - it browses/generates thumbnails for the whole
+    // library and can take noticeably longer, which raises the odds
+    // Android/Chrome decide to reclaim memory by discarding this
+    // backgrounded tab while that picker is open. When that happens,
+    // Chrome silently reloads the page once focus returns - the crop
+    // screen (already drawn onscreen before the discard) briefly stays
+    // visible, then the fresh reload replaces it with a plain Profile
+    // page, which looks exactly like "the function just closes." That's
+    // an OS-level memory decision this app can't prevent, but stashing
+    // the already-downscaled photo here means a reload can recover it:
+    // the mount effect below reopens the crop screen with the same photo
+    // instead of the user losing their selection entirely.
+    const PENDING_AVATAR_CROP_KEY = 'wg_pending_avatar_crop';
+
+    useEffect(() => {
+        try {
+            const saved = sessionStorage.getItem(PENDING_AVATAR_CROP_KEY);
+            if (saved) {
+                setRawImage(saved);
+                setShowCropModal(true);
+            }
+        } catch (err) {
+            // Ignore - sessionStorage can be unavailable (private
+            // browsing, blocked site data); worst case is just no
+            // auto-recovery, not a broken page.
+        }
+    }, []);
+
     const handleUpload = (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -241,9 +271,15 @@ function UserProfile() {
             canvas.height = Math.round(img.height * scale);
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            setRawImage(canvas.toDataURL('image/jpeg', 0.9)); // show in cropper
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+            setRawImage(dataUrl); // show in cropper
             setShowCropModal(true);
             URL.revokeObjectURL(objectUrl);
+            try {
+                sessionStorage.setItem(PENDING_AVATAR_CROP_KEY, dataUrl);
+            } catch (err) {
+                // Quota or unavailable storage - fine, just no auto-recovery.
+            }
         };
         img.onerror = () => {
             toast.error("Could not read that image. Please try a different photo.");
@@ -272,6 +308,14 @@ function UserProfile() {
     // Profile Settings modal. That disconnect (introduced when Profile
     // Settings was split into its own modal) is what caused newly cropped
     // photos to silently never actually save.
+    const clearPendingAvatarCrop = () => {
+        try {
+            sessionStorage.removeItem(PENDING_AVATAR_CROP_KEY);
+        } catch (err) {
+            // Ignore - nothing to clean up if storage isn't available.
+        }
+    };
+
     const cropImage = () => {
         const cropper = cropperRef.current?.cropper;
         if (cropper && cropper.getCroppedCanvas()) {
@@ -283,6 +327,7 @@ function UserProfile() {
                 setPreviewUrl(objectUrl);
                 setRawImage(null);
                 setShowCropModal(false);
+                clearPendingAvatarCrop();
 
                 try {
                     const formData = new FormData();
@@ -814,7 +859,7 @@ function UserProfile() {
 
             <ImageCropModal
                 show={showCropModal}
-                handleClose={() => setShowCropModal(false)}
+                handleClose={() => { setShowCropModal(false); clearPendingAvatarCrop(); }}
                 rawImage={rawImage}
                 cropperRef={cropperRef}
                 cropImage={cropImage}
