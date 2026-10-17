@@ -220,25 +220,36 @@ function UserProfile() {
         const file = e.target.files[0];
         if (!file) return;
 
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            const img = new Image();
-            img.onload = () => {
-                const scale = Math.min(1, MAX_UPLOAD_DIMENSION / Math.max(img.width, img.height));
-                const canvas = document.createElement('canvas');
-                canvas.width = Math.round(img.width * scale);
-                canvas.height = Math.round(img.height * scale);
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                setRawImage(canvas.toDataURL('image/jpeg', 0.9)); // show in cropper
-                setShowCropModal(true);
-            };
-            img.onerror = () => {
-                toast.error("Could not read that image. Please try a different photo.");
-            };
-            img.src = reader.result;
+        // A photo picked from Gallery is the original, full-resolution
+        // file (often 5-15MB+) - a phone's "Recent" shots are frequently
+        // much smaller (e.g. a screenshot), which is why this only ever
+        // failed for Gallery photos. Reading it via FileReader first would
+        // hold the entire file as a base64 JS string (~1.33x its size) in
+        // memory before any downscaling ever happens - on a memory-limited
+        // phone that allocation alone can crash the tab/WebView, which
+        // looks exactly like "the picker just closes." An object URL is
+        // just a lightweight reference the browser's own (native, far more
+        // memory-efficient) image decoder resolves directly, so the
+        // original file's bytes never have to go through JS as a string at
+        // all before being downscaled into the small canvas below.
+        const objectUrl = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+            const scale = Math.min(1, MAX_UPLOAD_DIMENSION / Math.max(img.width, img.height));
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.round(img.width * scale);
+            canvas.height = Math.round(img.height * scale);
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            setRawImage(canvas.toDataURL('image/jpeg', 0.9)); // show in cropper
+            setShowCropModal(true);
+            URL.revokeObjectURL(objectUrl);
         };
-        reader.readAsDataURL(file);
+        img.onerror = () => {
+            toast.error("Could not read that image. Please try a different photo.");
+            URL.revokeObjectURL(objectUrl);
+        };
+        img.src = objectUrl;
     };
 
     // Left as a direct URL (not run through loadScaledImageDataUrl) - that
