@@ -292,11 +292,11 @@ function GroupInfo() {
                         </Col>
 
                         {/* Selected Games */}
-                        <Col xs={4}  md={3} lg={3}  className="text-start">
-                            <ul style={{ listStyleType: 'none', padding: 0, marginBottom: 0 }}>
+                        <Col xs={4}  md={3} lg={3}  className="text-start px-1">
+                            <ul style={{ listStyleType: 'none', padding: 0, marginBottom: 0, fontSize: '0.85rem' }}>
                             {["Wordle", "Connections", "Phrazle", "Quordle", "Octordle"].map((game) => (
                                 <li key={game}>
-                                <span>
+                                <span style={{ whiteSpace: 'nowrap' }}>
                                     {game}: {member.selected_games.includes(game) ? <FaCheck /> : <IoClose />}
                                 </span>
                                 </li>
