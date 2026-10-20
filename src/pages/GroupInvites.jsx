@@ -888,16 +888,18 @@ const handleClick = async (
                   >
                     <div className="msg-row">
 
-                      {/* LEFT SIDE */}
+                      {/* LEFT SIDE - every notification type's message is
+                          backend-built HTML (consistently using <strong>
+                          for Gamler/Group names), so all of them render the
+                          same way. "group"/"group_deleted"/"member_removed"/
+                          "invite" used to render as plain text here, which
+                          silently showed literal "<strong>" tags instead of
+                          bolding anything for those four types. */}
                       <div className="msg-left">
-                        {["group", "group_deleted", "member_removed", "invite"].includes(msg.msg_from) ? (
-                          <p>{processedMessage}</p>
-                        ) : (
-                          <div
-                            className="cwd-group-message"
-                            dangerouslySetInnerHTML={{ __html: processedMessage }}
-                          />
-                        )}
+                        <div
+                          className="cwd-group-message"
+                          dangerouslySetInnerHTML={{ __html: processedMessage }}
+                        />
                           <div className=" d-flex gap-2 time-ago">
                             {timeAgo(msg.created_at, isGroupMessageUtc(msg))}
                             <span
