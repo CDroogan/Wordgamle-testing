@@ -547,6 +547,21 @@ const handleClick = async (
   //   return "Just now";
   // }
 
+  // Every group_messages notification type now stamps a true UTC instant
+  // at insert time, EXCEPT game_played ("X has played, Y still yet to
+  // play") - that one still keeps the submitter's local-wall-clock value
+  // because its own duplicate-prevention logic matches on DATE(created_at)
+  // to find "today's" row for a group+game. Shared here so both the
+  // relative "time ago" text and the Bell dropdown's sort order agree on
+  // which notifications are UTC and which aren't.
+  const isGroupMessageUtc = (msg) => msg.msg_from !== 'game_played';
+
+  // A string with no "Z"/offset suffix is ambiguous - the Date
+  // constructor reads it as local time, which is only correct for the
+  // one remaining non-UTC notification type above.
+  const parseTimestamp = (dateString, isUtc) =>
+    (isUtc ? new Date(dateString.replace(" ", "T") + "Z") : new Date(dateString)).getTime();
+
   function timeAgo(dateString, isUtc = false) {
     // General chat notifications carry a true UTC instant with no "Z"
     // suffix, which the Date constructor would otherwise read as local
@@ -713,218 +728,205 @@ const handleClick = async (
     }}
   >
     <ListGroup variant="flush" style={{ minWidth: "300px" }}>
-      {/* Private Messages - completely separate from Groups, mentions,
-          and friend requests, shown in the same bell dropdown for one
-          unified notification list. */}
-      {unreadConversations.length > 0 &&
-        unreadConversations.map((conversation) => {
-          const isUnread = !previewAllRead;
-          // In a group DM, name whoever actually sent the newest
-          // message, not every participant.
-          const sender = conversation.participants.find((p) => p.id === conversation.last_message_sender_id) || conversation.participants[0];
-          return (
-            <ListGroup.Item
-              key={`conversation-${conversation.conversation_id}`}
-              action
-              className={`${isUnread ? "unread-msg" : "read-msg"} msg-item`}
-              style={{ cursor: "pointer" }}
-              onClick={() => handleClickConversation(conversation)}
-            >
-              <div className="msg-row">
-                <div className="msg-left">
-                  <img
-                    src={sender.avatar ? `${baseURL}/user/uploads/${sender.avatar}` : `${baseURL}/user/uploads/default_avatar.png`}
-                    alt=""
-                    className="rounded-circle me-2"
-                    style={{ width: '24px', height: '24px', objectFit: 'cover', verticalAlign: 'middle' }}
-                  />
-                  <strong>{sender.username}</strong> sent you a private message.
-                  <div className="time-ago">{timeAgo(conversation.last_message_at, true)}</div>
-                </div>
-                {isUnread && <span className="unread-dot"></span>}
-              </div>
-            </ListGroup.Item>
-          );
-        })
-      }
-
-      {/* GamleFriend requests - completely separate from Groups and
-          mentions, shown in the same bell dropdown for one unified
-          notification list. */}
-      {Array.isArray(friendRequests) && friendRequests.length > 0 &&
-        friendRequests.map((request) => {
-          const isUnread = !previewAllRead && !request.seen_at;
-          return (
-            <ListGroup.Item
-              key={`friend-request-${request.id}`}
-              action
-              className={`${isUnread ? "unread-msg" : "read-msg"} msg-item`}
-              style={{ cursor: "pointer" }}
-              onClick={() => handleClickFriendRequest(request)}
-            >
-              <div className="msg-row">
-                <div className="msg-left">
-                  <img
-                    src={request.sender_avatar ? `${baseURL}/user/uploads/${request.sender_avatar}` : `${baseURL}/user/uploads/default_avatar.png`}
-                    alt=""
-                    className="rounded-circle me-2"
-                    style={{ width: '24px', height: '24px', objectFit: 'cover', verticalAlign: 'middle' }}
-                  />
-                  <strong>{request.sender_username}</strong> wants to be your GamleFriend.
-                  <div className="time-ago">{timeAgo(request.created_at, true)}</div>
-                </div>
-                {isUnread && <span className="unread-dot"></span>}
-              </div>
-            </ListGroup.Item>
-          );
-        })
-      }
-
-      {/* GameFeed @mentions - completely separate from Groups, shown in
-          the same bell dropdown for one unified notification list. */}
-      {Array.isArray(mentions) && mentions.length > 0 &&
-        mentions.map((mention) => {
-          const isUnread = !previewAllRead && !mention.seen_at;
-          return (
-            <ListGroup.Item
-              key={`mention-${mention.id}`}
-              action
-              className={`${isUnread ? "unread-msg" : "read-msg"} msg-item`}
-              style={{ cursor: "pointer" }}
-              onClick={() => handleClickMention(mention)}
-            >
-              <div className="msg-row">
-                <div className="msg-left">
-                  <img
-                    src={mention.mentioning_avatar ? `${baseURL}/user/uploads/${mention.mentioning_avatar}` : `${baseURL}/user/uploads/default_avatar.png`}
-                    alt=""
-                    className="rounded-circle me-2"
-                    style={{ width: '24px', height: '24px', objectFit: 'cover', verticalAlign: 'middle' }}
-                  />
-                  <strong>{mention.mentioning_username}</strong> mentioned you in {mention.comment_id ? 'a comment' : 'a post'} in the GameFeed.
-                  <div className="time-ago">{timeAgo(mention.created_at, true)}</div>
-                </div>
-                {isUnread && <span className="unread-dot"></span>}
-              </div>
-            </ListGroup.Item>
-          );
-        })
-      }
-
-      {/* Group Messages */}
-      {Array.isArray(groupMessages) && groupMessages.length > 0 &&
-        groupMessages.map((msg) => {
-          const isUnread =
-            !previewAllRead &&
-            (!msg.seen_ids ||
-            !msg.seen_ids.split(",").includes(String(userId)));
-
-          let processedMessage = msg.message || "";
-
-          // Replace the viewer's own name with "You" - but only where the
-          // backend actually renders a username (always wrapped in
-          // <strong> tags), not any bare occurrence of the name anywhere
-          // in the message. Without that scoping, a username that happens
-          // to also appear inside a GROUP name (e.g. "Cassandra" inside
-          // "Two Cassandras") gets swapped too.
-          if (currentUserName) {
-            const escapedName = currentUserName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            const nameRegex = new RegExp(`<strong>${escapedName}</strong>`, "g");
-            processedMessage = processedMessage.replace(
-              nameRegex,
-              "<strong>You</strong>"
-            );
-          }
-
-          // ✅ Fix: If "You" exists, change WINS → WIN
-          if (processedMessage.includes("You")) {
-            processedMessage = processedMessage.replace(/\bWINS\b/g, "WIN");
-          }
-
-          // Deuces Award: the winner's own view gets different wording
-          // than everyone else's, the same way the name above becomes
-          // "You" only for them.
-          if (msg.msg_from === "deuces_award" && processedMessage.includes("<strong>You</strong>")) {
-            processedMessage = processedMessage.replace(
-              "Two 2s Today!",
-              "Great Phrazle day, whoop!!"
-            );
-          }
-
-         
-
-          return (
-            <Link
-              key={`msg-${msg.id}`}
-              // to={
-              //   msg.msg_from === "group"
-              //     ? (msg.msg_id
-              //         ? `/group/${msg.group_id}?msg_id=${msg.msg_id}`
-              //         : `/group/${msg.group_id}`)
-              //     : (msg.msg_id
-              //         ? `/group/${msg.group_id}/stats/${msg.game_name}?msg_id=${msg.msg_id}`
-              //         : `/group/${msg.group_id}/stats/${msg.game_name}`)
-              // }
-              onClick={(e) =>
-                (msg.msg_from === "group_deleted" || msg.msg_from === "member_removed")
-                  ? handleClickHome(e, msg.group_id, msg.game_name, userId)
-                  : msg.msg_from === "invite"
-                  ? handleClickInvite(e, msg.group_id, userId)
-                  : msg.msg_from === "group"
-                  ? handleClickGroup(e, msg.group_id, msg.game_name, userId, msg.msg_id, msg.msg_from, msg.report_date, msg.period )
-                  : msg.game_name === "general_chat"
-                  ? handleClickGeneralChat(e, msg.group_id, userId, msg.msg_id)
-                  : handleClick(e, msg.group_id, msg.game_name, userId, msg.msg_id, msg.msg_from, msg.report_date, msg.period )
-              }
-              style={{ textDecoration: "none", color: "inherit" }}
-            >
-              <ListGroup.Item
-                className={`${isUnread ? "unread-msg" : "read-msg"} msg-item`}
-                style={{ cursor: "pointer" }}
-              >
-                <div className="msg-row">
-
-                  {/* LEFT SIDE */}
-                  <div className="msg-left">
-                    {["group", "group_deleted", "member_removed", "invite"].includes(msg.msg_from) ? (
-                      <p>{processedMessage}</p>
-                    ) : (
-                      <>
-                      <div
-                        className="cwd-group-message"
-                        dangerouslySetInnerHTML={{ __html: processedMessage }}
+      {/* Four independent notification sources (Private Messages,
+          GamleFriend requests, GameFeed mentions, Group Messages), each on
+          its own poll/fetch, merged here into one true chronological list
+          (most recent first) instead of four stacked blocks - a fresher
+          Group Message no longer gets buried below an older Private
+          Message just because they're a different notification type. */}
+      {(() => {
+        const bellItems = [
+          ...unreadConversations.map((conversation) => ({
+            key: `conversation-${conversation.conversation_id}`,
+            timestamp: parseTimestamp(conversation.last_message_at, true),
+            render: () => {
+              const isUnread = !previewAllRead;
+              // In a group DM, name whoever actually sent the newest
+              // message, not every participant.
+              const sender = conversation.participants.find((p) => p.id === conversation.last_message_sender_id) || conversation.participants[0];
+              return (
+                <ListGroup.Item
+                  action
+                  className={`${isUnread ? "unread-msg" : "read-msg"} msg-item`}
+                  style={{ cursor: "pointer" }}
+                  onClick={() => handleClickConversation(conversation)}
+                >
+                  <div className="msg-row">
+                    <div className="msg-left">
+                      <img
+                        src={sender.avatar ? `${baseURL}/user/uploads/${sender.avatar}` : `${baseURL}/user/uploads/default_avatar.png`}
+                        alt=""
+                        className="rounded-circle me-2"
+                        style={{ width: '24px', height: '24px', objectFit: 'cover', verticalAlign: 'middle' }}
                       />
-                      </>
-                    )}
-                      <div className=" d-flex gap-2 time-ago">
-                        {timeAgo(msg.created_at, msg.game_name === "general_chat")}
-                        <span
-                            className="delete-icon"
-                            onClick={(e) => {
-                              e.preventDefault();    // prevent navigation
-                              e.stopPropagation();   // stop click bubble
-                              handleDeleteMessage(msg.id);
-                            }}
-                          >
-                            <FaTrashRestore />
-                          </span>
-                        </div>
-                      </div>
-                    
-                    
+                      <strong>{sender.username}</strong> sent you a private message.
+                      <div className="time-ago">{timeAgo(conversation.last_message_at, true)}</div>
+                    </div>
+                    {isUnread && <span className="unread-dot"></span>}
+                  </div>
+                </ListGroup.Item>
+              );
+            },
+          })),
+          ...(Array.isArray(friendRequests) ? friendRequests : []).map((request) => ({
+            key: `friend-request-${request.id}`,
+            timestamp: parseTimestamp(request.created_at, true),
+            render: () => {
+              const isUnread = !previewAllRead && !request.seen_at;
+              return (
+                <ListGroup.Item
+                  action
+                  className={`${isUnread ? "unread-msg" : "read-msg"} msg-item`}
+                  style={{ cursor: "pointer" }}
+                  onClick={() => handleClickFriendRequest(request)}
+                >
+                  <div className="msg-row">
+                    <div className="msg-left">
+                      <img
+                        src={request.sender_avatar ? `${baseURL}/user/uploads/${request.sender_avatar}` : `${baseURL}/user/uploads/default_avatar.png`}
+                        alt=""
+                        className="rounded-circle me-2"
+                        style={{ width: '24px', height: '24px', objectFit: 'cover', verticalAlign: 'middle' }}
+                      />
+                      <strong>{request.sender_username}</strong> wants to be your GamleFriend.
+                      <div className="time-ago">{timeAgo(request.created_at, true)}</div>
+                    </div>
+                    {isUnread && <span className="unread-dot"></span>}
+                  </div>
+                </ListGroup.Item>
+              );
+            },
+          })),
+          ...(Array.isArray(mentions) ? mentions : []).map((mention) => ({
+            key: `mention-${mention.id}`,
+            timestamp: parseTimestamp(mention.created_at, true),
+            render: () => {
+              const isUnread = !previewAllRead && !mention.seen_at;
+              return (
+                <ListGroup.Item
+                  action
+                  className={`${isUnread ? "unread-msg" : "read-msg"} msg-item`}
+                  style={{ cursor: "pointer" }}
+                  onClick={() => handleClickMention(mention)}
+                >
+                  <div className="msg-row">
+                    <div className="msg-left">
+                      <img
+                        src={mention.mentioning_avatar ? `${baseURL}/user/uploads/${mention.mentioning_avatar}` : `${baseURL}/user/uploads/default_avatar.png`}
+                        alt=""
+                        className="rounded-circle me-2"
+                        style={{ width: '24px', height: '24px', objectFit: 'cover', verticalAlign: 'middle' }}
+                      />
+                      <strong>{mention.mentioning_username}</strong> mentioned you in {mention.comment_id ? 'a comment' : 'a post'} in the GameFeed.
+                      <div className="time-ago">{timeAgo(mention.created_at, true)}</div>
+                    </div>
+                    {isUnread && <span className="unread-dot"></span>}
+                  </div>
+                </ListGroup.Item>
+              );
+            },
+          })),
+          ...(Array.isArray(groupMessages) ? groupMessages : []).map((msg) => ({
+            key: `msg-${msg.id}`,
+            timestamp: parseTimestamp(msg.created_at, isGroupMessageUtc(msg)),
+            render: () => {
+              const isUnread =
+                !previewAllRead &&
+                (!msg.seen_ids ||
+                !msg.seen_ids.split(",").includes(String(userId)));
 
-                  {/* RIGHT SIDE — unread dot */}
-                  {isUnread && <span className="unread-dot"></span>}
+              let processedMessage = msg.message || "";
 
-                  {/* DELETE ICON (hidden until hover) */}
-                </div>
-              </ListGroup.Item>
+              // Replace the viewer's own name with "You" - but only where the
+              // backend actually renders a username (always wrapped in
+              // <strong> tags), not any bare occurrence of the name anywhere
+              // in the message. Without that scoping, a username that happens
+              // to also appear inside a GROUP name (e.g. "Cassandra" inside
+              // "Two Cassandras") gets swapped too.
+              if (currentUserName) {
+                const escapedName = currentUserName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const nameRegex = new RegExp(`<strong>${escapedName}</strong>`, "g");
+                processedMessage = processedMessage.replace(
+                  nameRegex,
+                  "<strong>You</strong>"
+                );
+              }
 
+              // Fix: If "You" exists, change WINS → WIN
+              if (processedMessage.includes("You")) {
+                processedMessage = processedMessage.replace(/\bWINS\b/g, "WIN");
+              }
 
-            </Link>
-          );
-        })
-      }
+              // Deuces Award: the winner's own view gets different wording
+              // than everyone else's, the same way the name above becomes
+              // "You" only for them.
+              if (msg.msg_from === "deuces_award" && processedMessage.includes("<strong>You</strong>")) {
+                processedMessage = processedMessage.replace(
+                  "Two 2s Today!",
+                  "Great Phrazle day, whoop!!"
+                );
+              }
+
+              return (
+                <Link
+                  onClick={(e) =>
+                    (msg.msg_from === "group_deleted" || msg.msg_from === "member_removed")
+                      ? handleClickHome(e, msg.group_id, msg.game_name, userId)
+                      : msg.msg_from === "invite"
+                      ? handleClickInvite(e, msg.group_id, userId)
+                      : msg.msg_from === "group"
+                      ? handleClickGroup(e, msg.group_id, msg.game_name, userId, msg.msg_id, msg.msg_from, msg.report_date, msg.period )
+                      : msg.game_name === "general_chat"
+                      ? handleClickGeneralChat(e, msg.group_id, userId, msg.msg_id)
+                      : handleClick(e, msg.group_id, msg.game_name, userId, msg.msg_id, msg.msg_from, msg.report_date, msg.period )
+                  }
+                  style={{ textDecoration: "none", color: "inherit" }}
+                >
+                  <ListGroup.Item
+                    className={`${isUnread ? "unread-msg" : "read-msg"} msg-item`}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <div className="msg-row">
+
+                      {/* LEFT SIDE */}
+                      <div className="msg-left">
+                        {["group", "group_deleted", "member_removed", "invite"].includes(msg.msg_from) ? (
+                          <p>{processedMessage}</p>
+                        ) : (
+                          <div
+                            className="cwd-group-message"
+                            dangerouslySetInnerHTML={{ __html: processedMessage }}
+                          />
+                        )}
+                          <div className=" d-flex gap-2 time-ago">
+                            {timeAgo(msg.created_at, isGroupMessageUtc(msg))}
+                            <span
+                                className="delete-icon"
+                                onClick={(e) => {
+                                  e.preventDefault();    // prevent navigation
+                                  e.stopPropagation();   // stop click bubble
+                                  handleDeleteMessage(msg.id);
+                                }}
+                              >
+                                <FaTrashRestore />
+                              </span>
+                            </div>
+                          </div>
+
+                      {/* RIGHT SIDE — unread dot */}
+                      {isUnread && <span className="unread-dot"></span>}
+                    </div>
+                  </ListGroup.Item>
+                </Link>
+              );
+            },
+          })),
+        ].sort((a, b) => b.timestamp - a.timestamp);
+
+        return bellItems.map((item) => (
+          <React.Fragment key={item.key}>{item.render()}</React.Fragment>
+        ));
+      })()}
 
     </ListGroup>
   </div>
