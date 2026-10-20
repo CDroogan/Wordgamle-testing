@@ -379,7 +379,11 @@ function UserProfile() {
 
         if (!firstName.trim()) newErrors.firstName = "First name is required";
         if (!lastName.trim()) newErrors.lastName = "Last name is required";
-        if (!username.trim()) newErrors.username = "Username is required";
+        if (!username.trim()) {
+            newErrors.username = "Username is required";
+        } else if (!/^[A-Za-z0-9.-]{2,25}$/.test(username.trim())) {
+            newErrors.username = "GamleName must be 2-25 characters: letters, numbers, periods, and hyphens only (no spaces).";
+        }
         if (password && password !== confirmpassword) {
             newErrors.confirmpassword = "Passwords do not match";
         }
@@ -633,7 +637,7 @@ function UserProfile() {
                                 __html: registrationformText.username_desc
                                 }}
                             />
-                            <Form.Control type="text" value={username} onChange={(e) => setUsername(e.target.value)} />
+                            <Form.Control type="text" value={username} onChange={(e) => setUsername(e.target.value)} maxLength={25} />
                             {errors.username && <div style={{ color: "red" }}>{errors.username}</div>} {/* ✅ Fix here */}
                         </Form.Group>
 

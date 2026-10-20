@@ -146,7 +146,11 @@ function Registerform() {
 
         if (!firstName.trim()) newErrors.firstName = 'First name is required.';
         if (!lastName.trim()) newErrors.lastName = 'Last name is required.';
-        if (!username.trim()) newErrors.username = 'Username is required.';
+        if (!username.trim()) {
+            newErrors.username = 'Username is required.';
+        } else if (!/^[A-Za-z0-9.-]{2,25}$/.test(username.trim())) {
+            newErrors.username = 'GamleName must be 2-25 characters: letters, numbers, periods, and hyphens only (no spaces).';
+        }
 
         if (!email) {
             newErrors.email = 'Email is required.';
@@ -439,6 +443,7 @@ function Registerform() {
                                         value={username}
                                         onChange={(e) => setUsername(e.target.value)}
                                         onBlur={() => handleBlur('username')}
+                                        maxLength={25}
                                         placeholder={registrationformText.username_placeholder}
                                     />
                                     {touched.username && errors.username && <p className='form-validation-error'>{errors.username}</p>}
