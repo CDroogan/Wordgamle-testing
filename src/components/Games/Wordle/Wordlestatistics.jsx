@@ -17,6 +17,7 @@ function Wordlestatistics({ statschart }) {
     const [last7Average, setLast7Average] = useState();
     const [cumulativeAvgEntered, setCumulativeAvgEntered] = useState();
     const [cumulativeAvgInclNoPlay, setCumulativeAvgInclNoPlay] = useState();
+    const [oneHitAward, setOneHitAward] = useState();
 
     useEffect(() => {
         getStatsValue();
@@ -43,6 +44,7 @@ function Wordlestatistics({ statschart }) {
                 setLast7Average(statistics.last7Average);
                 setCumulativeAvgEntered(statistics.cumulativeAvgEntered);
                 setCumulativeAvgInclNoPlay(statistics.cumulativeAvgInclNoPlay);
+                setOneHitAward(statistics.oneHitAward);
             })
             .catch((error) => {
                 console.error("Error fetching data: ", error);
@@ -92,6 +94,18 @@ function Wordlestatistics({ statschart }) {
                             <div className='bottom-text'>Cumulative Avg. (incl. No Play)</div>
                         </li>
                     </ul>
+
+                    {/* Only shown once a Gamler has at least one hole-in-one
+                        in their history - a "0" here would read as a taunt,
+                        not an achievement. */}
+                    {oneHitAward > 0 && (
+                        <ul className="justify-content-center">
+                            <li>
+                                <div className='value'>{oneHitAward}</div>
+                                <div className='bottom-text'>One Hit Wordlers!</div>
+                            </li>
+                        </ul>
+                    )}
 
                     <div className="guess-distribution my-4">
                         <h2 className="text-uppercase">Distribution</h2>

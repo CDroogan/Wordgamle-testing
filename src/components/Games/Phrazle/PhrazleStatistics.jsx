@@ -17,6 +17,7 @@ function phrazleStatistics({statschart}) {
     const [cumulativeAvgEntered, setCumulativeAvgEntered] = useState();
     const [cumulativeAvgInclNoPlay, setCumulativeAvgInclNoPlay] = useState();
     const [deucesAward, setDeucesAward] = useState();
+    const [oneHitAward, setOneHitAward] = useState();
 
     useEffect(() => {
         getStatsValue();
@@ -42,6 +43,7 @@ function phrazleStatistics({statschart}) {
                 setCumulativeAvgEntered(statistics.cumulativeAvgEntered);
                 setCumulativeAvgInclNoPlay(statistics.cumulativeAvgInclNoPlay);
                 setDeucesAward(statistics.deucesAward);
+                setOneHitAward(statistics.oneHitAward);
             })
             .catch((error) => {
                 console.error("Error fetching data: ", error);
@@ -100,6 +102,15 @@ function phrazleStatistics({statschart}) {
                             <div className='value'>{deucesAward}</div>
                             <div className='bottom-text'>Deuces Awards</div>
                         </li>
+                        {/* Only shown once a Gamler has at least one
+                            hole-in-one in their history - a "0" here would
+                            read as a taunt, not an achievement. */}
+                        {oneHitAward > 0 && (
+                            <li>
+                                <div className='value'>{oneHitAward}</div>
+                                <div className='bottom-text'>One Hit Phrazlers!</div>
+                            </li>
+                        )}
                     </ul>
 
                     <div className="guess-distribution my-4">
