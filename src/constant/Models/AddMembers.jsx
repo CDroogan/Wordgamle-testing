@@ -72,6 +72,26 @@ const AddMembers = ({ showForm, handleFormClose, groupName, groupId, existingMem
     }
   };
 
+  // Shown both in the open dropdown list and in the chip for an already-
+  // selected Gamler (react-select calls this for both, distinguished by
+  // context) - smaller in a chip since several can sit side by side.
+  const formatOptionLabel = ({ label, avatar }, { context }) => (
+    <div className="d-flex align-items-center gap-2">
+      <img
+        src={avatar ? `${baseURL}/user/uploads/${avatar}` : `${baseURL}/user/uploads/default_avatar.png`}
+        alt=""
+        style={{
+          width: context === 'menu' ? '28px' : '20px',
+          height: context === 'menu' ? '28px' : '20px',
+          borderRadius: '50%',
+          objectFit: 'cover',
+          flexShrink: 0,
+        }}
+      />
+      <span>{label}</span>
+    </div>
+  );
+
   const frontendBaseUrl = window.location.origin;
 
   const handleSendInvitation = async () => {
@@ -189,6 +209,7 @@ const AddMembers = ({ showForm, handleFormClose, groupName, groupId, existingMem
                 .map(user => ({
                   value: user.id,
                   label: `${user.first_name} ${user.last_name} (${user.username})`,
+                  avatar: user.avatar,
                 }))}
               value={selectedMembers}
               onChange={setSelectedMembers}
@@ -197,6 +218,7 @@ const AddMembers = ({ showForm, handleFormClose, groupName, groupId, existingMem
               noOptionsMessage={() =>
                 searchInput.length < 3 ? "Type at least 3 letters..." : "No users found"
               }
+              formatOptionLabel={formatOptionLabel}
             />
             <div className="alert alert-warning py-2 px-3 mb-2" style={{ fontSize: '0.85rem', marginBottom: '5px' }}>
               * Only active users are shown. Paused users are not available for selection.
