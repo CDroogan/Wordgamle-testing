@@ -108,7 +108,7 @@ function phrazleStatistics({statschart}) {
                         {oneHitAward > 0 && (
                             <li>
                                 <div className='value'>{oneHitAward}</div>
-                                <div className='bottom-text'>One Hit Phrazlers!</div>
+                                <div className='bottom-text'>One Hit Phrazler Award</div>
                             </li>
                         )}
                     </ul>

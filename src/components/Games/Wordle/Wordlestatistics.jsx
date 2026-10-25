@@ -102,7 +102,7 @@ function Wordlestatistics({ statschart }) {
                         <ul className="justify-content-center">
                             <li>
                                 <div className='value'>{oneHitAward}</div>
-                                <div className='bottom-text'>One Hit Wordlers!</div>
+                                <div className='bottom-text'>One Hit Wordler Award</div>
                             </li>
                         </ul>
                     )}
