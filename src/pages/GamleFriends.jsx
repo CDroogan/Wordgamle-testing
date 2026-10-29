@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Container, Row, Col, Form, ListGroup } from 'react-bootstrap';
+import { Container, Row, Col, Form, ListGroup, Button } from 'react-bootstrap';
 import Axios from 'axios';
+import { toast } from 'react-toastify';
 import MemberProfile from '../constant/Models/MemberProfile';
 
 function GamleFriends() {
@@ -8,6 +9,7 @@ function GamleFriends() {
   const userId = JSON.parse(localStorage.getItem('auth'))?.id;
 
   const [friends, setFriends] = useState([]);
+  const [sentRequests, setSentRequests] = useState([]);
   const [searchInput, setSearchInput] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [selectedMember, setSelectedMember] = useState(null);
@@ -24,9 +26,38 @@ function GamleFriends() {
     }
   }, [baseURL, userId]);
 
+  const fetchSentRequests = useCallback(async () => {
+    try {
+      const res = await Axios.get(`${baseURL}/friends/get-sent-requests.php`, { params: { user_id: userId } });
+      if (res.data.status === 'success') {
+        setSentRequests(res.data.requests || []);
+      }
+    } catch (err) {
+      console.error('Error fetching sent GamleFriend requests:', err);
+    }
+  }, [baseURL, userId]);
+
   useEffect(() => {
     fetchFriends();
-  }, [fetchFriends]);
+    fetchSentRequests();
+  }, [fetchFriends, fetchSentRequests]);
+
+  const cancelSentRequest = async (e, requestId) => {
+    e.stopPropagation(); // don't also open the Member Profile popup
+    try {
+      const res = await Axios.post(`${baseURL}/friends/cancel-request.php`, {
+        user_id: userId,
+        request_id: requestId,
+      });
+      if (res.data.status === 'success') {
+        setSentRequests((prev) => prev.filter((r) => r.request_id !== requestId));
+      } else {
+        toast.error(res.data.message || 'Could not cancel that request.');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not cancel that request.');
+    }
+  };
 
   const runSearch = useCallback(async (query) => {
     if (query.trim() === '') {
@@ -86,7 +117,7 @@ function GamleFriends() {
 
           <Form.Control
             type="text"
-            placeholder="Search Gamlers"
+            placeholder="Search for a Gamler to add as a GamleFriend..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             className="mb-3"
@@ -150,6 +181,42 @@ function GamleFriends() {
               ))
             )}
           </ListGroup>
+
+          {sentRequests.length > 0 && (
+            <>
+              <h6 className="text-muted mb-2 mt-4">GamleFriend Requests Sent</h6>
+              <ListGroup>
+                {sentRequests.map((request) => (
+                  <ListGroup.Item
+                    key={request.request_id}
+                    action
+                    onClick={() => openProfile(request)}
+                    className="d-flex align-items-center"
+                  >
+                    <img
+                      src={request.avatar ? `${baseURL}/user/uploads/${request.avatar}` : `${baseURL}/user/uploads/defalut_avatar.png`}
+                      alt=""
+                      className="rounded-circle me-2 flex-shrink-0"
+                      style={{ width: '32px', height: '32px', objectFit: 'cover' }}
+                    />
+                    <div style={{ minWidth: 0 }} className="flex-grow-1">
+                      <div>{request.first_name} {request.last_name} ({request.username})</div>
+                      <div className="text-muted" style={{ fontSize: '0.85rem' }}>
+                        {statusLine('Request Sent', request.mutual_count)}
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline-secondary"
+                      onClick={(e) => cancelSentRequest(e, request.request_id)}
+                    >
+                      Cancel
+                    </Button>
+                  </ListGroup.Item>
+                ))}
+              </ListGroup>
+            </>
+          )}
         </Col>
       </Row>
 
@@ -162,6 +229,7 @@ function GamleFriends() {
         friendshipEnabled
         onRelationshipChange={() => {
           fetchFriends();
+          fetchSentRequests();
           runSearch(searchInput);
         }}
       />
