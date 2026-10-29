@@ -117,7 +117,7 @@ function GamleFriends() {
 
           <Form.Control
             type="text"
-            placeholder="Search for a Gamler to add as a GamleFriend..."
+            placeholder="Search Gamlers to send a Friend Request..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             className="mb-3"
