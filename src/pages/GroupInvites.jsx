@@ -782,13 +782,15 @@ const handleClick = async (
                 >
                   <div className="msg-row">
                     <div className="msg-left">
+                      <div className="fw-bold mb-1">Friend Request!</div>
+                      <strong>{request.sender_first_name} {request.sender_last_name} ({request.sender_username})</strong>{' '}
                       <img
                         src={request.sender_avatar ? `${baseURL}/user/uploads/${request.sender_avatar}` : `${baseURL}/user/uploads/default_avatar.png`}
                         alt=""
                         className="rounded-circle me-2"
                         style={{ width: '24px', height: '24px', objectFit: 'cover', verticalAlign: 'middle' }}
                       />
-                      <strong>{request.sender_username}</strong> wants to be your GamleFriend.
+                      <strong>wants to be your GamleFriend.</strong> Go to your Profile page to Accept or Decline.
                       <div className="time-ago">{timeAgo(request.created_at, true)}</div>
                     </div>
                     {isUnread && <span className="unread-dot"></span>}
