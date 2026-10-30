@@ -901,14 +901,17 @@ const handleClickAward = async (e, groupId, game, userId, msgId, msgFrom) => {
                 processedMessage = processedMessage.replace(/\bWINS\b/g, "WIN");
               }
 
-              // Deuces Award: the winner's own view gets different wording
-              // than everyone else's, the same way the name above becomes
-              // "You" only for them.
+              // Deuces Award: the winner's own view uses genuinely
+              // different wording (not just a name swap) than everyone
+              // else's, so the whole message is rebuilt rather than
+              // patched - re-using the same avatar <img> already embedded
+              // in the stored message (always right next to the winner's
+              // name), just moved next to "You" instead.
               if (msg.msg_from === "deuces_award" && processedMessage.includes("<strong>You</strong>")) {
-                processedMessage = processedMessage.replace(
-                  "Two 2s Today!",
-                  "Great Phrazle day, whoop!!"
-                );
+                const avatarMatch = msg.message.match(/<img[^>]*>/);
+                const avatarImg = avatarMatch ? avatarMatch[0] : '';
+                processedMessage =
+                  `<strong>DEUCES AWARD – Two 2s for You${avatarImg}!</strong><br>Great Phrazle day, whoop!`;
               }
 
               return (
