@@ -332,6 +332,29 @@ useEffect(() => {
     }
   };
 
+  // A member added a new game to their Leaderboard preferences within
+  // this group - lands on the Group Info page (where members/preferences
+  // are shown), not the group's main page like other "group admin"
+  // notifications sharing the same 'group' read-state bucket.
+  const handleClickGroupInfo = async (e, groupId, game, userId, msgId) => {
+    e.preventDefault();
+    setShowDropdown(false);
+
+    try {
+      await axios.post(`${baseURL}/groups/update-seen-ids.php`, {
+        group_id: groupId,
+        msg_from: 'group',
+        game_name: game,
+        user_id: userId,
+      });
+
+      await fetchGroupMessages();
+      navigate(`/group-info/${groupId}?msg_id=${msgId}`);
+    } catch (error) {
+      console.error("Axios error:", error);
+    }
+  };
+
   // A message posted to the group's general/leaderboard chat (as opposed
   // to a specific game's chat) - lands on the group's stats/leaderboard
   // page, where that chat lives, rather than a specific game's page.
@@ -952,6 +975,8 @@ const handleClickAward = async (e, groupId, game, userId, msgId, msgFrom, winner
                       ? handleClickInvite(e, msg.group_id, userId)
                       : (msg.msg_from === "group" || msg.msg_from === "scoring_method")
                       ? handleClickGroup(e, msg.group_id, msg.game_name, userId, msg.msg_id, msg.msg_from, msg.report_date, msg.period )
+                      : msg.msg_from === "game_preference"
+                      ? handleClickGroupInfo(e, msg.group_id, msg.game_name, userId, msg.msg_id)
                       : AWARD_MSG_FROM_TYPES.includes(msg.msg_from)
                       ? handleClickAward(e, msg.group_id, msg.game_name, userId, msg.msg_id, msg.msg_from, msg.winner_id)
                       : msg.game_name === "general_chat"
