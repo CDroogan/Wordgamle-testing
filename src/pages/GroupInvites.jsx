@@ -950,7 +950,7 @@ const handleClickAward = async (e, groupId, game, userId, msgId, msgFrom, winner
                       ? handleClickHome(e, msg.group_id, msg.game_name, userId)
                       : msg.msg_from === "invite"
                       ? handleClickInvite(e, msg.group_id, userId)
-                      : msg.msg_from === "group"
+                      : (msg.msg_from === "group" || msg.msg_from === "scoring_method")
                       ? handleClickGroup(e, msg.group_id, msg.game_name, userId, msg.msg_id, msg.msg_from, msg.report_date, msg.period )
                       : AWARD_MSG_FROM_TYPES.includes(msg.msg_from)
                       ? handleClickAward(e, msg.group_id, msg.game_name, userId, msg.msg_id, msg.msg_from, msg.winner_id)
