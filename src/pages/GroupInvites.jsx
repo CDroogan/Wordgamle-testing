@@ -534,7 +534,7 @@ const PERSONAL_STATS_ROUTE = {
   phrazle: '/phrazlestats',
 };
 
-const handleClickAward = async (e, groupId, game, userId, msgId, msgFrom) => {
+const handleClickAward = async (e, groupId, game, userId, msgId, msgFrom, winnerId) => {
   e.preventDefault();
   setShowDropdown(false);
 
@@ -549,8 +549,12 @@ const handleClickAward = async (e, groupId, game, userId, msgId, msgFrom) => {
     });
     await fetchGroupMessages();
 
+    // winner_id restricts the landing group to ones actually shared with
+    // the winner (see get-landing-group.php) - omitted when the viewer
+    // IS the winner, since every one of their own groups already
+    // qualifies by definition.
     const res = await axios.get(`${baseURL}/groups/get-landing-group.php`, {
-      params: { user_id: userId, game },
+      params: { user_id: userId, game, winner_id: winnerId || undefined },
     });
 
     if (res.data.destination === 'group' && res.data.group_id) {
@@ -927,7 +931,7 @@ const handleClickAward = async (e, groupId, game, userId, msgId, msgFrom) => {
                       : msg.msg_from === "group"
                       ? handleClickGroup(e, msg.group_id, msg.game_name, userId, msg.msg_id, msg.msg_from, msg.report_date, msg.period )
                       : AWARD_MSG_FROM_TYPES.includes(msg.msg_from)
-                      ? handleClickAward(e, msg.group_id, msg.game_name, userId, msg.msg_id, msg.msg_from)
+                      ? handleClickAward(e, msg.group_id, msg.game_name, userId, msg.msg_id, msg.msg_from, msg.winner_id)
                       : msg.game_name === "general_chat"
                       ? handleClickGeneralChat(e, msg.group_id, userId, msg.msg_id)
                       : handleClick(e, msg.group_id, msg.game_name, userId, msg.msg_id, msg.msg_from, msg.report_date, msg.period )
