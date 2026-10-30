@@ -521,6 +521,48 @@ const handleClick = async (
   }
 };
 
+// "Award" notifications (Deuces, One Hit Wordler, One Hit Phrazler, and
+// anything added later under the same convention) can reach a Gamler
+// across EVERY group they share with the winner for that game, not just
+// one - so where this click should land has to be worked out for THIS
+// viewer's own groups, not from a single group_id baked into the
+// message row (see groups/get-landing-group.php for the full reasoning).
+const AWARD_MSG_FROM_TYPES = ['deuces_award', 'one_hit_wordler', 'one_hit_phrazler'];
+
+const PERSONAL_STATS_ROUTE = {
+  wordle: '/wordlestats',
+  phrazle: '/phrazlestats',
+};
+
+const handleClickAward = async (e, groupId, game, userId, msgId, msgFrom) => {
+  e.preventDefault();
+  setShowDropdown(false);
+
+  try {
+    // Marks the whole notification thread (every row sharing this
+    // group_id + game_name) seen, exactly like every other click handler
+    // here - unrelated to which page this particular viewer ends up on.
+    await axios.post(`${baseURL}/groups/update-seen-ids.php`, {
+      group_id: groupId,
+      game_name: game,
+      user_id: userId,
+    });
+    await fetchGroupMessages();
+
+    const res = await axios.get(`${baseURL}/groups/get-landing-group.php`, {
+      params: { user_id: userId, game },
+    });
+
+    if (res.data.destination === 'group' && res.data.group_id) {
+      navigate(`/group/${res.data.group_id}/stats/${game}?msg_id=${msgId}&msg_from=${msgFrom}`);
+    } else {
+      navigate(PERSONAL_STATS_ROUTE[game] || '/');
+    }
+  } catch (error) {
+    console.error("Axios error:", error);
+  }
+};
+
 
 
   // function timeAgo(dateString) {
@@ -878,6 +920,8 @@ const handleClick = async (
                       ? handleClickInvite(e, msg.group_id, userId)
                       : msg.msg_from === "group"
                       ? handleClickGroup(e, msg.group_id, msg.game_name, userId, msg.msg_id, msg.msg_from, msg.report_date, msg.period )
+                      : AWARD_MSG_FROM_TYPES.includes(msg.msg_from)
+                      ? handleClickAward(e, msg.group_id, msg.game_name, userId, msg.msg_id, msg.msg_from)
                       : msg.game_name === "general_chat"
                       ? handleClickGeneralChat(e, msg.group_id, userId, msg.msg_id)
                       : handleClick(e, msg.group_id, msg.game_name, userId, msg.msg_id, msg.msg_from, msg.report_date, msg.period )
