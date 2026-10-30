@@ -182,13 +182,18 @@ function GroupChatMessagesByDate({ gameName, messages, userId, baseURL, highligh
           )}
 
           {/* Messages for this date */}
-          {groupedMessages[dateKey].map((msg) => {
+          {groupedMessages[dateKey].map((msg, idx) => {
             const isMe = msg.user_id === userId;
             const formattedTime = msg.created_at
               ? (generalChat
                   ? dayjs.utc(msg.created_at).tz(userTimezone).format("h:mm A")
                   : dayjs(msg.created_at).format("h:mm A"))
               : "";
+            // Back-to-back messages from the same sender only need the
+            // avatar+name shown once - it repeats again as soon as anyone
+            // else posts in between.
+            const prevMsg = groupedMessages[dateKey][idx - 1];
+            const showHeader = !prevMsg || prevMsg.user_id !== msg.user_id;
             return (
               <div
                 key={msg.id}
@@ -196,24 +201,26 @@ function GroupChatMessagesByDate({ gameName, messages, userId, baseURL, highligh
                 className="d-flex flex-column mb-3 align-items-start"
               >
                 {/* Avatar + Username on one row, same layout as the GameFeed */}
-                <div
-                  className="d-flex align-items-center mb-1"
-                  style={{ cursor: "pointer" }}
-                  onClick={() => handleShowProfile(msg)}
-                >
-                  <img
-                    src={msg.avatar ? `${baseURL}/user/uploads/${msg.avatar}` : `${baseURL}/user/uploads/default_avatar.png`}
-                    alt="avatar"
-                    className="rounded-circle me-2"
-                    width="24"
-                    height="24"
-                    onError={(e) => { e.target.onerror = null; e.target.src = `${baseURL}/user/uploads/default_avatar.png`; }}
-                    style={{ objectFit: "cover", border: "2px solid #0d6efd" }}
-                  />
-                  <span className="small fw-bold text-primary">
-                    {msg.username || `User ${msg.user_id}`}
-                  </span>
-                </div>
+                {showHeader && (
+                  <div
+                    className="d-flex align-items-center mb-1"
+                    style={{ cursor: "pointer" }}
+                    onClick={() => handleShowProfile(msg)}
+                  >
+                    <img
+                      src={msg.avatar ? `${baseURL}/user/uploads/${msg.avatar}` : `${baseURL}/user/uploads/default_avatar.png`}
+                      alt="avatar"
+                      className="rounded-circle me-2"
+                      width="24"
+                      height="24"
+                      onError={(e) => { e.target.onerror = null; e.target.src = `${baseURL}/user/uploads/default_avatar.png`; }}
+                      style={{ objectFit: "cover", border: "2px solid #0d6efd" }}
+                    />
+                    <span className="small fw-bold text-primary">
+                      {msg.username || `User ${msg.user_id}`}
+                    </span>
+                  </div>
+                )}
 
                 {/* Message row */}
 
