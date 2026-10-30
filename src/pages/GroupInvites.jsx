@@ -931,6 +931,16 @@ const handleClickAward = async (e, groupId, game, userId, msgId, msgFrom, winner
                   (bannerImg ? `<br>${bannerImg}` : '');
               }
 
+              // One Hit Phrazler Award: same approach as the other two
+              // Award types above.
+              if (msg.msg_from === "one_hit_phrazler" && processedMessage.includes("<strong>You</strong>")) {
+                const imgTags = msg.message.match(/<img[^>]*>/g) || [];
+                const [avatarImg, bannerImg] = imgTags;
+                processedMessage =
+                  `<strong>One Hit Phrazler AWARD for You${avatarImg || ''}!</strong><br>You're a Phrazle Phenom!  Well played!` +
+                  (bannerImg ? `<br>${bannerImg}` : '');
+              }
+
               return (
                 <Link
                   onClick={(e) =>
