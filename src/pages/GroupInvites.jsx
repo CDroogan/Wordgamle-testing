@@ -398,10 +398,9 @@ useEffect(() => {
     }
   };
 
-  // "Group deleted" and "you were removed from the group" both mean the
-  // group's own page is no longer somewhere this user can (or should) land -
-  // for a deleted group it's gone entirely, and for a removed member they're
-  // no longer part of it. Send them home instead.
+  // "You were removed from the group" means the group's own page is no
+  // longer somewhere this user can (or should) land - they're no longer
+  // part of it. Send them home instead.
   const handleClickHome = async (e, groupId, game, userId) => {
     e.preventDefault();
     setShowDropdown(false);
@@ -416,6 +415,28 @@ useEffect(() => {
 
       await fetchGroupMessages();
       navigate('/');
+    } catch (error) {
+      console.error("Axios error:", error);
+    }
+  };
+
+  // "Group deleted" - the group's own page is gone entirely, so this
+  // lands on the WordGAMLE Groups list instead of that group's page (or
+  // Home, like "you were removed" uses).
+  const handleClickGroupDeleted = async (e, groupId, game, userId) => {
+    e.preventDefault();
+    setShowDropdown(false);
+
+    try {
+      await axios.post(`${baseURL}/groups/update-seen-ids.php`, {
+        group_id: groupId,
+        msg_from: 'group',
+        game_name: game,
+        user_id: userId,
+      });
+
+      await fetchGroupMessages();
+      navigate('/groups');
     } catch (error) {
       console.error("Axios error:", error);
     }
@@ -969,7 +990,9 @@ const handleClickAward = async (e, groupId, game, userId, msgId, msgFrom, winner
               return (
                 <Link
                   onClick={(e) =>
-                    (msg.msg_from === "group_deleted" || msg.msg_from === "member_removed")
+                    msg.msg_from === "group_deleted"
+                      ? handleClickGroupDeleted(e, msg.group_id, msg.game_name, userId)
+                      : msg.msg_from === "member_removed"
                       ? handleClickHome(e, msg.group_id, msg.game_name, userId)
                       : msg.msg_from === "invite"
                       ? handleClickInvite(e, msg.group_id, userId)
