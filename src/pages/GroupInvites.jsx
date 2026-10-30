@@ -799,13 +799,15 @@ const handleClickAward = async (e, groupId, game, userId, msgId, msgFrom, winner
                 >
                   <div className="msg-row">
                     <div className="msg-left">
+                      <div className="fw-bold mb-1">Are your ears ringing??</div>
+                      <strong>{sender.username}</strong>{' '}
                       <img
                         src={sender.avatar ? `${baseURL}/user/uploads/${sender.avatar}` : `${baseURL}/user/uploads/default_avatar.png`}
                         alt=""
                         className="rounded-circle me-2"
                         style={{ width: '24px', height: '24px', objectFit: 'cover', verticalAlign: 'middle' }}
                       />
-                      <strong>{sender.username}</strong> sent you a private message.
+                      sent you a Private Message.
                       <div className="time-ago">{timeAgo(conversation.last_message_at, true)}</div>
                     </div>
                     {isUnread && <span className="unread-dot"></span>}
