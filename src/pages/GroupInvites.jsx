@@ -921,6 +921,16 @@ const handleClickAward = async (e, groupId, game, userId, msgId, msgFrom, winner
                   (bannerImg ? `<br>${bannerImg}` : '');
               }
 
+              // One Hit Wordler Award: same "rebuild the whole message for
+              // the winner's own view" approach as Deuces Award above.
+              if (msg.msg_from === "one_hit_wordler" && processedMessage.includes("<strong>You</strong>")) {
+                const imgTags = msg.message.match(/<img[^>]*>/g) || [];
+                const [avatarImg, bannerImg] = imgTags;
+                processedMessage =
+                  `<strong>One Hit Wordler AWARD for You${avatarImg || ''}!</strong><br>You're a Wordle Wiz!  Well played!` +
+                  (bannerImg ? `<br>${bannerImg}` : '');
+              }
+
               return (
                 <Link
                   onClick={(e) =>
