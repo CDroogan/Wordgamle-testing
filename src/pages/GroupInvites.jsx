@@ -940,13 +940,15 @@ const handleClickAward = async (e, groupId, game, userId, msgId, msgFrom, winner
                 >
                   <div className="msg-row">
                     <div className="msg-left">
+                      <div className="fw-bold mb-1">Are your ears ringing??</div>
+                      <strong>{mention.mentioning_username}</strong>{' '}
                       <img
                         src={mention.mentioning_avatar ? `${baseURL}/user/uploads/${mention.mentioning_avatar}` : `${baseURL}/user/uploads/default_avatar.png`}
                         alt=""
                         className="rounded-circle me-2"
                         style={{ width: '24px', height: '24px', objectFit: 'cover', verticalAlign: 'middle' }}
                       />
-                      <strong>{mention.mentioning_username}</strong> mentioned you in {mention.comment_id ? 'a comment' : 'a post'} in the GameFeed.
+                      mentioned you in a Gamefeed {mention.comment_id ? 'comment' : 'post'}!
                       <div className="time-ago">{timeAgo(mention.created_at, true)}</div>
                     </div>
                     {isUnread && <span className="unread-dot"></span>}
