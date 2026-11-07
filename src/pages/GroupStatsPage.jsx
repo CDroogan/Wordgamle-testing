@@ -33,6 +33,7 @@ function GroupStatsPage() {
   const msgFrom = searchParams.get("msg_from");
   const msgReportDate = searchParams.get("msgReportDate");
   const msgPeriod = searchParams.get("msgPeriod");
+  const msgYearOf = searchParams.get("msgYearOf");
 
   const [reportDate, setReportDate] = useState(null);
   useEffect(() => {
@@ -125,6 +126,7 @@ function GroupStatsPage() {
             setShowProfile={setShowProfile}
             msgReportDate={msgReportDate}
             msgPeriod={msgPeriod}
+            msgYearOf={msgYearOf}
           />
 
         </Col>

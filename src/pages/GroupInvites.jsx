@@ -565,6 +565,40 @@ const handleClick = async (
   }
 };
 
+// Cumulative Period (Week/Month/Year) Winner Announcement - lands on the
+// same page as the daily Game Period Winner (its Weekly/Monthly/Yearly
+// sections, not a specific day), so this deliberately does NOT reuse
+// handleClick: that one passes msgReportDate/msgPeriod, which would
+// instead scroll the viewer down to that single day in the Daily
+// section. Week and Month already default to "most recently complete",
+// which is exactly the period this notification refers to - no extra
+// param needed. Year is the one exception: it defaults to the CURRENT
+// (in-progress) year, so msgYearOf is passed to override that, letting
+// the just-completed year's data load instead.
+const handleClickPeriodWinner = async (e, groupId, game, userId, msgId, msgFrom, reportDate) => {
+  e.preventDefault();
+  setShowDropdown(false);
+
+  try {
+    await axios.post(`${baseURL}/groups/update-seen-ids.php`, {
+      group_id: groupId,
+      msg_from: 'game',
+      game_name: game,
+      user_id: userId,
+    });
+
+    await fetchGroupMessages();
+
+    let url = `/group/${groupId}/stats/${game}?msg_id=${msgId}&msg_from=${msgFrom}`;
+    if (msgFrom === 'period_winner_year' && reportDate) {
+      url += `&msgYearOf=${reportDate.slice(0, 4)}`;
+    }
+    navigate(url);
+  } catch (error) {
+    console.error("Axios error:", error);
+  }
+};
+
 // "Award" notifications (Deuces, One Hit Wordler, One Hit Phrazler, and
 // anything added later under the same convention) can reach a Gamler
 // across EVERY group they share with the winner for that game, not just
@@ -572,6 +606,7 @@ const handleClick = async (
 // viewer's own groups, not from a single group_id baked into the
 // message row (see groups/get-landing-group.php for the full reasoning).
 const AWARD_MSG_FROM_TYPES = ['deuces_award', 'one_hit_wordler', 'one_hit_phrazler'];
+const PERIOD_WINNER_MSG_FROM_TYPES = ['period_winner_week', 'period_winner_month', 'period_winner_year'];
 
 const PERSONAL_STATS_ROUTE = {
   wordle: '/wordlestats',
@@ -1000,6 +1035,8 @@ const handleClickAward = async (e, groupId, game, userId, msgId, msgFrom, winner
                       ? handleClickGroup(e, msg.group_id, msg.game_name, userId, msg.msg_id, msg.msg_from, msg.report_date, msg.period )
                       : (msg.msg_from === "game_preference" || msg.msg_from === "member_removed_notice")
                       ? handleClickGroupInfo(e, msg.group_id, msg.game_name, userId, msg.msg_id)
+                      : PERIOD_WINNER_MSG_FROM_TYPES.includes(msg.msg_from)
+                      ? handleClickPeriodWinner(e, msg.group_id, msg.game_name, userId, msg.msg_id, msg.msg_from, msg.report_date)
                       : AWARD_MSG_FROM_TYPES.includes(msg.msg_from)
                       ? handleClickAward(e, msg.group_id, msg.game_name, userId, msg.msg_id, msg.msg_from, msg.winner_id)
                       : msg.game_name === "general_chat"

@@ -9,7 +9,7 @@ import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
 import dayjs from "dayjs";
 import GetGroupMessagesModal from '../../constant/Models/GetGroupMessagesModal';
 
-function GroupScoreByDate({ latestJoinDate, setSelectedMember, setShowProfile, msgReportDate, msgPeriod}) {
+function GroupScoreByDate({ latestJoinDate, setSelectedMember, setShowProfile, msgReportDate, msgPeriod, msgYearOf}) {
     const baseURL = import.meta.env.VITE_BASE_URL;
     const { id, groupName, game } = useParams();
     // A notification for a past game period should land the user right on
@@ -101,9 +101,14 @@ function GroupScoreByDate({ latestJoinDate, setSelectedMember, setShowProfile, m
         }
     };
     useEffect(() => {
-        fetchYearlyData(null);
+        // A Cumulative Period Winner notification for a past (just-
+        // completed) year passes msgYearOf to override the default
+        // "current year" - otherwise, landing here right after a new
+        // year starts would show the new, nearly-empty year instead of
+        // the one the notification is actually about.
+        fetchYearlyData(msgYearOf || null);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [id, game]);
+    }, [id, game, msgYearOf]);
     const goToPreviousYear = () => {
         if (!yearlyData?.canGoBack) return;
         fetchYearlyData(yearlyData.year - 1);
