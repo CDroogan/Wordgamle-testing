@@ -315,8 +315,8 @@ function PrivateMessages() {
     setSending(true);
     try {
       const body = thread.conversationId
-        ? { sender_id: userId, conversation_id: thread.conversationId, message: text }
-        : { sender_id: userId, recipient_ids: thread.participants.map((p) => p.id), message: text };
+        ? { sender_id: userId, conversation_id: thread.conversationId, message: text, frontendBaseUrl: window.location.origin }
+        : { sender_id: userId, recipient_ids: thread.participants.map((p) => p.id), message: text, frontendBaseUrl: window.location.origin };
       const res = await Axios.post(`${baseURL}/messages/send-message.php`, body);
       if (res.data.status === 'success') {
         setThread((prev) => ({
