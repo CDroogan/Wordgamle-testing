@@ -90,7 +90,9 @@ const GroupInvites = () => {
         request_id: request.id,
       });
       setFriendRequests((prev) => prev.map((r) => (r.id === request.id ? { ...r, seen_at: 'seen' } : r)));
-      navigate('/edit-profile');
+      // Pending GamleFriend Requests now lives on the GamleFriends page
+      // itself, not the Profile page.
+      navigate('/gamle-friends');
     } catch (error) {
       console.error('Error marking friend request seen:', error);
     }
