@@ -254,6 +254,7 @@ function Registerform() {
         if (inviteToken) {
             formData.append('inviteToken', inviteToken);
         }
+        formData.append('frontendBaseUrl', window.location.origin);
         try {
             const res = await Axios.post(`${baseURL}/user/create-user.php`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }

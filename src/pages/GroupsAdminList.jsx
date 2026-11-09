@@ -21,7 +21,7 @@ function GroupsAdminList() {
   const handleDeleteGroup = async (group) => {
     if (!window.confirm(`Delete "${group.name}"? This cannot be undone.`)) return;
     try {
-      const res = await Axios.post(`${baseURL}/groups/delete-group.php`, { group_id: group.id, user_id: userId });
+      const res = await Axios.post(`${baseURL}/groups/delete-group.php`, { group_id: group.id, user_id: userId, frontendBaseUrl: window.location.origin });
       if (res.data.status === 'success') {
         setGroups((prev) => prev.filter((g) => g.id !== group.id));
       } else {

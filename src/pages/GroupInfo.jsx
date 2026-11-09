@@ -144,6 +144,7 @@ function GroupInfo() {
             const response = await Axios.post(`${baseURL}/groups/remove-member.php`, {
                 group_id: Number(id), // pass current group ID
                 member_id: memberId,
+                frontendBaseUrl: window.location.origin,
             });
 
             if (response.data.success) {
@@ -161,7 +162,7 @@ function GroupInfo() {
         setDeleteLoading(true);
         setShowDeleteConfirm(false);
         try {
-            const res = await Axios.post(`${baseURL}/groups/delete-group.php`, { group_id: Number(id), user_id: userId });
+            const res = await Axios.post(`${baseURL}/groups/delete-group.php`, { group_id: Number(id), user_id: userId, frontendBaseUrl: window.location.origin });
             if (res.data.status === "success") {
                 navigate('/groups');
             } else {
