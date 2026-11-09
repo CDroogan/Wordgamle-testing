@@ -32,8 +32,13 @@ function ResetPwdForm() {
                 toast.error(res.data.message);
             } else {
                 toast.success('Password updated successfully');
-                navigate('/login');
-                
+                // Prefills the Login page with the account that was
+                // actually just reset - otherwise the field is left
+                // blank, and the browser's own saved-password autofill
+                // can fill it in with a different, previously-saved
+                // account on this device instead.
+                navigate('/login', { state: { prefillEmail: res.data.email } });
+
             }
         } catch (err) {
             

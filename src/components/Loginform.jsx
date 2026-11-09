@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Container, Row, Col, Form, Button, InputGroup } from 'react-bootstrap';
 import Axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from 'react-toastify';
 import { Link } from 'react-router-dom';
 import '@fortawesome/fontawesome-free/css/all.min.css';
@@ -11,8 +11,14 @@ function Loginform() {
     const baseURL = import.meta.env.VITE_BASE_URL;
     const userAuthData = JSON.parse(localStorage.getItem('auth')); // Change here
     const navigate = useNavigate();
+    const location = useLocation();
     const [validated, setValidated] = useState(false);
-    const [emailOrUsername, setEmailOrUsername] = useState('');
+    // Arriving fresh from a successful password reset (see
+    // Resetpwdform.jsx) prefills the account that was actually just
+    // reset, so the browser's own saved-password autofill doesn't get to
+    // fill this in with a different, previously-saved account on this
+    // device instead.
+    const [emailOrUsername, setEmailOrUsername] = useState(location.state?.prefillEmail || '');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [showLoginForm, setShowLoginForm] = useState(false);
@@ -77,6 +83,7 @@ function Loginform() {
                                                             onChange={(e) => setEmailOrUsername(e.target.value)}
                                                             value={emailOrUsername}
                                                             name="login-identifier"
+                                                            autoComplete="username"
                                                         />
                                                             <Form.Control.Feedback type="invalid">
                                                                 Please enter an email.
@@ -96,6 +103,7 @@ function Loginform() {
                                                                 onChange={(e) => setPassword(e.target.value)}
                                                                 value={password}
                                                                 name="login-password"
+                                                                autoComplete="current-password"
                                                             />
                                                             <InputGroup.Text>
                                                                 <i className={showPassword ? "fa fa-eye-slash" : "fa fa-eye"} onClick={togglePasswordVisibility}></i>
