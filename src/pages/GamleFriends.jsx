@@ -10,6 +10,7 @@ function GamleFriends() {
 
   const [friends, setFriends] = useState([]);
   const [sentRequests, setSentRequests] = useState([]);
+  const [pendingFriendRequests, setPendingFriendRequests] = useState([]);
   const [searchInput, setSearchInput] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [selectedMember, setSelectedMember] = useState(null);
@@ -37,10 +38,50 @@ function GamleFriends() {
     }
   }, [baseURL, userId]);
 
+  // Pending GamleFriend Requests - polled like the other lists on this
+  // page (moved here from the Profile page so it lives alongside every
+  // other GamleFriend list, not just this one).
+  const fetchPendingFriendRequests = useCallback(async () => {
+    try {
+      const res = await Axios.get(`${baseURL}/friends/get-pending-requests.php?user_id=${userId}`);
+      setPendingFriendRequests(Array.isArray(res.data.requests) ? res.data.requests : []);
+    } catch (error) {
+      console.error('Error fetching pending friend requests:', error);
+    }
+  }, [baseURL, userId]);
+
   useEffect(() => {
     fetchFriends();
     fetchSentRequests();
-  }, [fetchFriends, fetchSentRequests]);
+    fetchPendingFriendRequests();
+    const interval = setInterval(fetchPendingFriendRequests, 15000);
+    return () => clearInterval(interval);
+  }, [fetchFriends, fetchSentRequests, fetchPendingFriendRequests]);
+
+  const handleAcceptFriendRequest = async (request) => {
+    try {
+      await Axios.post(`${baseURL}/friends/accept-request.php`, {
+        user_id: userId,
+        request_id: request.id,
+      });
+      setPendingFriendRequests((prev) => prev.filter((r) => r.id !== request.id));
+      fetchFriends();
+    } catch (error) {
+      toast.error('Failed to accept friend request.');
+    }
+  };
+
+  const handleDeclineFriendRequest = async (request) => {
+    try {
+      await Axios.post(`${baseURL}/friends/decline-request.php`, {
+        user_id: userId,
+        request_id: request.id,
+      });
+      setPendingFriendRequests((prev) => prev.filter((r) => r.id !== request.id));
+    } catch (error) {
+      toast.error('Failed to decline friend request.');
+    }
+  };
 
   const cancelSentRequest = async (e, requestId) => {
     e.stopPropagation(); // don't also open the Member Profile popup
@@ -114,6 +155,33 @@ function GamleFriends() {
       <Row className="justify-content-center pt-4">
         <Col md={8} lg={6}>
           <h4 className="mb-3">GamleFriends</h4>
+
+          {pendingFriendRequests.length > 0 && (
+            <div className="my-4" style={{ background: '#330072', borderRadius: '1rem', padding: '1rem' }}>
+              <div className="border rounded p-3 bg-white">
+                <h5 className="mb-3">Pending GamleFriend Requests:</h5>
+                {pendingFriendRequests.map((request) => (
+                  <div key={request.id} className="mb-3 d-flex align-items-center">
+                    <img
+                      src={request.sender_avatar ? `${baseURL}/user/uploads/${request.sender_avatar}` : `${baseURL}/user/uploads/defalut_avatar.png`}
+                      alt=""
+                      className="rounded-circle me-2"
+                      style={{ width: '32px', height: '32px', objectFit: 'cover' }}
+                    />
+                    <div className="flex-grow-1">
+                      <strong>{request.sender_first_name} {request.sender_last_name}</strong> ({request.sender_username})
+                    </div>
+                    <Button size="sm" variant="success" className="me-2" onClick={() => handleAcceptFriendRequest(request)}>
+                      Accept
+                    </Button>
+                    <Button size="sm" variant="danger" onClick={() => handleDeclineFriendRequest(request)}>
+                      Decline
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <Form.Control
             type="text"
