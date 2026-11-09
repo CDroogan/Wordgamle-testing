@@ -54,6 +54,7 @@ function MemberProfile({ show, onHide, selectedMember, baseURL, viewerId, friend
       const res = await Axios.post(`${baseURL}/friends/send-request.php`, {
         sender_id: viewerId,
         receiver_id: selectedMember.id,
+        frontendBaseUrl: window.location.origin,
       });
       if (res.data.status === 'success') {
         setRelationship('pending_sent');
